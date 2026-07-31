@@ -7,6 +7,7 @@ enum AppSection: String, CaseIterable, Identifiable {
     case planner
     case progress
     case library
+    case settings
 
     var id: String { rawValue }
 
@@ -18,6 +19,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .planner: "Planner"
         case .progress: "Progress"
         case .library: "Library"
+        case .settings: "Settings"
         }
     }
 
@@ -29,6 +31,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .planner: "calendar"
         case .progress: "chart.line.uptrend.xyaxis"
         case .library: "folder"
+        case .settings: "gearshape"
         }
     }
 }

@@ -18,6 +18,7 @@ struct SessionFormView: View {
     @State private var room: String
     @State private var professorName: String
     @State private var attendanceStatus: AttendanceStatus
+    @State private var sessionType: ClassSessionType
     @State private var progressStatus: SessionProgressStatus
     @State private var selectedChapterID: UUID?
     @State private var objectivesText: String
@@ -41,6 +42,7 @@ struct SessionFormView: View {
         _room = State(initialValue: session?.room ?? course.defaultRoom ?? "")
         _professorName = State(initialValue: session?.professorName ?? course.professorName)
         _attendanceStatus = State(initialValue: session?.attendanceStatus ?? .planned)
+        _sessionType = State(initialValue: session?.sessionType ?? .lecture)
         _progressStatus = State(initialValue: session?.progressStatus ?? .captured)
         _selectedChapterID = State(initialValue: session?.chapter?.id ?? initialChapter?.id)
         _objectivesText = State(initialValue: session?.learningObjectives.joined(separator: "\n") ?? "")
@@ -79,6 +81,11 @@ struct SessionFormView: View {
                     Picker("Attendance", selection: $attendanceStatus) {
                         ForEach(AttendanceStatus.allCases) { status in
                             Text(status.title).tag(status)
+                        }
+                    }
+                    Picker("Type", selection: $sessionType) {
+                        ForEach(ClassSessionType.allCases) { type in
+                            Text(type.title).tag(type)
                         }
                     }
                     Picker("Workflow progress", selection: $progressStatus) {
@@ -128,6 +135,7 @@ struct SessionFormView: View {
                 session.room = room.emptyAsNil
                 session.professorName = professorName.emptyAsNil
                 session.attendanceStatus = attendanceStatus
+                session.sessionType = sessionType
                 session.progressStatus = progressStatus
                 session.chapter = selectedChapter
                 session.learningObjectives = list(from: objectivesText)
@@ -145,6 +153,7 @@ struct SessionFormView: View {
                     room: room.emptyAsNil,
                     professorName: professorName.emptyAsNil,
                     attendanceStatus: attendanceStatus,
+                    sessionType: sessionType,
                     learningObjectives: list(from: objectivesText),
                     importantConcepts: list(from: conceptsText),
                     reviewTasks: list(from: reviewTasksText),
@@ -154,6 +163,7 @@ struct SessionFormView: View {
                 )
                 modelContext.insert(session)
             }
+            try modelContext.save()
             dismiss()
         } catch {
             errorMessage = error.localizedDescription

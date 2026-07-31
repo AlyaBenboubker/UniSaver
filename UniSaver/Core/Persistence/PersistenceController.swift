@@ -7,7 +7,12 @@ enum PersistenceController {
         Semester.self,
         Course.self,
         Chapter.self,
-        ClassSession.self
+        ClassSession.self,
+        AcademicTask.self,
+        Exam.self,
+        StudyBlock.self,
+        ReadingProgress.self,
+        AppWorkspace.self
     ])
 
     static func appContainer() throws -> ModelContainer {

@@ -13,6 +13,7 @@ struct ChapterFormView: View {
     @State private var chapterDescription: String
     @State private var status: AcademicItemStatus
     @State private var objectivesText: String
+    @State private var errorMessage: String?
 
     init(course: Course, chapter: Chapter? = nil) {
         self.course = course
@@ -39,6 +40,11 @@ struct ChapterFormView: View {
                     }
                     TextField("Learning objectives, one per line", text: $objectivesText, axis: .vertical)
                 }
+
+                if let errorMessage {
+                    Text(errorMessage)
+                        .foregroundStyle(.red)
+                }
             }
             .navigationTitle(chapter == nil ? "New Chapter" : "Edit Chapter")
             .toolbar {
@@ -54,6 +60,10 @@ struct ChapterFormView: View {
     }
 
     private func save() {
+        do {
+            guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                throw AcademicValidationError.emptyName
+            }
         let objectives = objectivesText
             .split(whereSeparator: \.isNewline)
             .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -71,6 +81,10 @@ struct ChapterFormView: View {
             let chapter = Chapter(number: number, title: title, chapterDescription: chapterDescription, learningObjectives: objectives, order: number, status: status, course: course)
             modelContext.insert(chapter)
         }
-        dismiss()
+            try modelContext.save()
+            dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 }

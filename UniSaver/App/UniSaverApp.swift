@@ -24,6 +24,33 @@ struct UniSaverApp: App {
                     NotificationCenter.default.post(name: .openQuickAddCourse, object: nil)
                 }
                 .keyboardShortcut("n", modifiers: [.command])
+                Divider()
+                Button("Today") {
+                    NotificationCenter.default.post(name: .selectAppSection, object: AppSection.today)
+                }
+                .keyboardShortcut("1", modifiers: [.command])
+                Button("Classes") {
+                    NotificationCenter.default.post(name: .selectAppSection, object: AppSection.classes)
+                }
+                .keyboardShortcut("2", modifiers: [.command])
+                Button("Study") {
+                    NotificationCenter.default.post(name: .selectAppSection, object: AppSection.study)
+                }
+                .keyboardShortcut("3", modifiers: [.command])
+            }
+            CommandMenu("Workspace") {
+                Button("Reset Workspace Choice") {
+                    NotificationCenter.default.post(name: .resetWorkspaceChoice, object: nil)
+                }
+                Button("Load Demo Workspace") {
+                    NotificationCenter.default.post(name: .loadDemoWorkspace, object: nil)
+                }
+                Button("Reset Demo Data") {
+                    NotificationCenter.default.post(name: .resetDemoData, object: nil)
+                }
+                Button("Start Empty Workspace") {
+                    NotificationCenter.default.post(name: .startEmptyWorkspace, object: nil)
+                }
             }
         }
     }
@@ -31,4 +58,10 @@ struct UniSaverApp: App {
 
 extension Notification.Name {
     static let openQuickAddCourse = Notification.Name("openQuickAddCourse")
+    static let selectAppSection = Notification.Name("selectAppSection")
+    static let loadDemoWorkspace = Notification.Name("loadDemoWorkspace")
+    static let resetDemoData = Notification.Name("resetDemoData")
+    static let resetWorkspaceChoice = Notification.Name("resetWorkspaceChoice")
+    static let startEmptyWorkspace = Notification.Name("startEmptyWorkspace")
+    static let courseCreated = Notification.Name("courseCreated")
 }

@@ -41,6 +41,69 @@ enum AttendanceStatus: String, Codable, CaseIterable, Identifiable {
     var title: String { rawValue.capitalized }
 }
 
+enum AcademicTaskStatus: String, Codable, CaseIterable, Identifiable {
+    case todo
+    case inProgress
+    case completed
+    case cancelled
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .todo: "To do"
+        case .inProgress: "In progress"
+        case .completed: "Completed"
+        case .cancelled: "Cancelled"
+        }
+    }
+}
+
+enum AcademicTaskPriority: String, Codable, CaseIterable, Identifiable, Comparable {
+    case low
+    case medium
+    case high
+    case urgent
+
+    var id: String { rawValue }
+    var title: String { rawValue.capitalized }
+
+    var rank: Int {
+        switch self {
+        case .urgent: 0
+        case .high: 1
+        case .medium: 2
+        case .low: 3
+        }
+    }
+
+    static func < (lhs: AcademicTaskPriority, rhs: AcademicTaskPriority) -> Bool {
+        lhs.rank < rhs.rank
+    }
+}
+
+enum ExamType: String, Codable, CaseIterable, Identifiable {
+    case quiz
+    case midterm
+    case final
+    case oral
+    case project
+    case other
+
+    var id: String { rawValue }
+    var title: String { rawValue.capitalized }
+}
+
+enum StudyBlockStatus: String, Codable, CaseIterable, Identifiable {
+    case planned
+    case inProgress
+    case completed
+    case cancelled
+
+    var id: String { rawValue }
+    var title: String { rawValue.capitalized }
+}
+
 enum SessionProgressStatus: String, Codable, CaseIterable, Identifiable {
     case captured
     case organized
@@ -76,6 +139,30 @@ enum SessionProgressStatus: String, Codable, CaseIterable, Identifiable {
         case .organized: .reviewed
         case .reviewed: .practiced
         case .practiced, .mastered: .mastered
+        }
+    }
+}
+
+enum ClassSessionType: String, Codable, CaseIterable, Identifiable {
+    case lecture
+    case tutorial
+    case lab
+    case seminar
+    case study
+    case examPrep
+    case custom
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .lecture: "Lecture"
+        case .tutorial: "Tutorial"
+        case .lab: "Lab"
+        case .seminar: "Seminar"
+        case .study: "Study"
+        case .examPrep: "Exam prep"
+        case .custom: "Custom"
         }
     }
 }
@@ -168,6 +255,8 @@ final class Course {
     var symbolName: String?
     var credits: Double?
     var evaluationMethod: String?
+    var startDate: Date?
+    var endDate: Date?
     var status: AcademicItemStatus
     var isArchived: Bool
     var createdAt: Date
@@ -193,6 +282,8 @@ final class Course {
         symbolName: String? = "book.closed",
         credits: Double? = nil,
         evaluationMethod: String? = nil,
+        startDate: Date? = nil,
+        endDate: Date? = nil,
         status: AcademicItemStatus = .notStarted,
         isArchived: Bool = false,
         semester: Semester? = nil,
@@ -212,6 +303,8 @@ final class Course {
         self.symbolName = symbolName
         self.credits = credits
         self.evaluationMethod = evaluationMethod
+        self.startDate = startDate
+        self.endDate = endDate
         self.status = status
         self.isArchived = isArchived
         self.semester = semester
@@ -281,6 +374,7 @@ final class ClassSession {
     var room: String?
     var professorName: String?
     var attendanceStatus: AttendanceStatus
+    var sessionType: ClassSessionType
     var learningObjectives: [String]
     var importantConcepts: [String]
     var reviewTasks: [String]
@@ -302,6 +396,7 @@ final class ClassSession {
         room: String? = nil,
         professorName: String? = nil,
         attendanceStatus: AttendanceStatus = .planned,
+        sessionType: ClassSessionType = .lecture,
         learningObjectives: [String] = [],
         importantConcepts: [String] = [],
         reviewTasks: [String] = [],
@@ -321,12 +416,216 @@ final class ClassSession {
         self.room = room
         self.professorName = professorName
         self.attendanceStatus = attendanceStatus
+        self.sessionType = sessionType
         self.learningObjectives = learningObjectives
         self.importantConcepts = importantConcepts
         self.reviewTasks = reviewTasks
         self.progressStatus = progressStatus
         self.course = course
         self.chapter = chapter
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+@Model
+final class AcademicTask {
+    @Attribute(.unique) var id: UUID
+    var title: String
+    var taskDescription: String
+    var dueDate: Date
+    var priority: AcademicTaskPriority
+    var status: AcademicTaskStatus
+    var estimatedDuration: TimeInterval
+    var createdAt: Date
+    var updatedAt: Date
+
+    var course: Course?
+    var chapter: Chapter?
+    var session: ClassSession?
+
+    init(
+        id: UUID = UUID(),
+        title: String,
+        taskDescription: String = "",
+        dueDate: Date,
+        priority: AcademicTaskPriority = .medium,
+        status: AcademicTaskStatus = .todo,
+        estimatedDuration: TimeInterval = 3600,
+        course: Course? = nil,
+        chapter: Chapter? = nil,
+        session: ClassSession? = nil,
+        createdAt: Date = .now,
+        updatedAt: Date = .now
+    ) {
+        self.id = id
+        self.title = title
+        self.taskDescription = taskDescription
+        self.dueDate = dueDate
+        self.priority = priority
+        self.status = status
+        self.estimatedDuration = estimatedDuration
+        self.course = course
+        self.chapter = chapter
+        self.session = session
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+@Model
+final class Exam {
+    @Attribute(.unique) var id: UUID
+    var title: String
+    var date: Date
+    var startTime: Date?
+    var endTime: Date?
+    var room: String?
+    var examType: ExamType
+    var notes: String
+    var createdAt: Date
+    var updatedAt: Date
+
+    var course: Course?
+
+    @Relationship(deleteRule: .nullify)
+    var chapters: [Chapter]
+
+    init(
+        id: UUID = UUID(),
+        title: String,
+        date: Date,
+        startTime: Date? = nil,
+        endTime: Date? = nil,
+        room: String? = nil,
+        examType: ExamType = .midterm,
+        notes: String = "",
+        course: Course? = nil,
+        chapters: [Chapter] = [],
+        createdAt: Date = .now,
+        updatedAt: Date = .now
+    ) {
+        self.id = id
+        self.title = title
+        self.date = date
+        self.startTime = startTime
+        self.endTime = endTime
+        self.room = room
+        self.examType = examType
+        self.notes = notes
+        self.course = course
+        self.chapters = chapters
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+@Model
+final class StudyBlock {
+    @Attribute(.unique) var id: UUID
+    var title: String
+    var startDate: Date
+    var endDate: Date
+    var status: StudyBlockStatus
+    var createdAt: Date
+    var updatedAt: Date
+
+    var course: Course?
+    var task: AcademicTask?
+
+    init(
+        id: UUID = UUID(),
+        title: String,
+        startDate: Date,
+        endDate: Date,
+        status: StudyBlockStatus = .planned,
+        course: Course? = nil,
+        task: AcademicTask? = nil,
+        createdAt: Date = .now,
+        updatedAt: Date = .now
+    ) {
+        self.id = id
+        self.title = title
+        self.startDate = startDate
+        self.endDate = endDate
+        self.status = status
+        self.course = course
+        self.task = task
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+@Model
+final class ReadingProgress {
+    @Attribute(.unique) var id: UUID
+    var resourceTitle: String
+    var currentPage: Int
+    var totalPages: Int
+    var lastOpenedAt: Date
+    var coverColorIdentifier: String
+    var createdAt: Date
+    var updatedAt: Date
+
+    var course: Course?
+    var chapter: Chapter?
+
+    init(
+        id: UUID = UUID(),
+        resourceTitle: String,
+        currentPage: Int,
+        totalPages: Int,
+        lastOpenedAt: Date = .now,
+        course: Course? = nil,
+        chapter: Chapter? = nil,
+        coverColorIdentifier: String = "blueViolet",
+        createdAt: Date = .now,
+        updatedAt: Date = .now
+    ) {
+        self.id = id
+        self.resourceTitle = resourceTitle
+        self.currentPage = currentPage
+        self.totalPages = max(totalPages, 1)
+        self.lastOpenedAt = lastOpenedAt
+        self.course = course
+        self.chapter = chapter
+        self.coverColorIdentifier = coverColorIdentifier
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+
+    var progress: Double {
+        min(max(Double(currentPage) / Double(totalPages), 0), 1)
+    }
+}
+
+@Model
+final class AppWorkspace {
+    @Attribute(.unique) var id: String
+    var firstName: String
+    var isDemoWorkspace: Bool
+    var flashcardsDue: Int
+    var flashcardCourseCount: Int
+    var lastStudyActivity: Date?
+    var createdAt: Date
+    var updatedAt: Date
+
+    init(
+        id: String = "default",
+        firstName: String = "Alya",
+        isDemoWorkspace: Bool = false,
+        flashcardsDue: Int = 0,
+        flashcardCourseCount: Int = 0,
+        lastStudyActivity: Date? = nil,
+        createdAt: Date = .now,
+        updatedAt: Date = .now
+    ) {
+        self.id = id
+        self.firstName = firstName
+        self.isDemoWorkspace = isDemoWorkspace
+        self.flashcardsDue = flashcardsDue
+        self.flashcardCourseCount = flashcardCourseCount
+        self.lastStudyActivity = lastStudyActivity
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }

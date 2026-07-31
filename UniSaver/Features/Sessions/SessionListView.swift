@@ -38,6 +38,7 @@ struct SessionListView: View {
                         Button("Advance Progress") {
                             session.progressStatus = session.progressStatus.advanced()
                             session.updatedAt = .now
+                            try? modelContext.save()
                         }
                     }
                 }
@@ -55,6 +56,7 @@ struct SessionListView: View {
             Button("Delete Session", role: .destructive) {
                 if let deleteSession {
                     modelContext.delete(deleteSession)
+                    try? modelContext.save()
                     self.deleteSession = nil
                 }
             }

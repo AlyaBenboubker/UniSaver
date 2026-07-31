@@ -30,6 +30,7 @@ struct ChapterListView: View {
                         Button("Archive") {
                             chapter.isArchived = true
                             chapter.updatedAt = .now
+                            try? modelContext.save()
                         }
                         .tint(.orange)
                         Button("Delete", role: .destructive) {
@@ -42,10 +43,12 @@ struct ChapterListView: View {
                         Button("Advance Status") {
                             chapter.status = chapter.status.advanced()
                             chapter.updatedAt = .now
+                            try? modelContext.save()
                         }
                         Button("Archive") {
                             chapter.isArchived = true
                             chapter.updatedAt = .now
+                            try? modelContext.save()
                         }
                     }
                 }
@@ -64,6 +67,7 @@ struct ChapterListView: View {
             Button("Delete Chapter", role: .destructive) {
                 if let deleteChapter {
                     modelContext.delete(deleteChapter)
+                    try? modelContext.save()
                     self.deleteChapter = nil
                 }
             }
@@ -81,6 +85,7 @@ struct ChapterListView: View {
             chapter.number = index + 1
             chapter.updatedAt = .now
         }
+        try? modelContext.save()
     }
 }
 
@@ -105,29 +110,88 @@ struct ChapterRow: View {
 }
 
 struct ChapterDetailView: View {
+    @Environment(\.modelContext) private var modelContext
     @Bindable var chapter: Chapter
     @Binding var quickAddTarget: QuickAddTarget?
+    @State private var editingChapter = false
+    @State private var deleteConfirmation = false
+
+    private var sortedSessions: [ClassSession] {
+        chapter.sessions.sorted { $0.startTime < $1.startTime }
+    }
 
     var body: some View {
-        Form {
-            Section("Chapter") {
-                Text(chapter.title)
-                Text(chapter.chapterDescription.isEmpty ? "No description." : chapter.chapterDescription)
-                Picker("Status", selection: $chapter.status) {
-                    ForEach(AcademicItemStatus.allCases) { status in
-                        Text(status.title).tag(status)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Text("Chapter \(chapter.number)")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Text(chapter.status.title)
+                            .font(.caption.weight(.semibold))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(StudyDeskTheme.surfaceTinted, in: Capsule())
                     }
+                    Text(chapter.title)
+                        .font(.title2.weight(.bold))
+                    Text(chapter.chapterDescription.isEmpty ? "No description yet." : chapter.chapterDescription)
+                        .foregroundStyle(.secondary)
+                    ProgressMeter(value: chapter.status.progressWeight)
                 }
+                .padding()
+                .deskCard()
+
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Sessions")
+                        .font(.headline)
+                    if sortedSessions.isEmpty {
+                        Text("No sessions linked to this chapter yet.")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(sortedSessions) { session in
+                            SessionRow(session: session)
+                            if session.id != sortedSessions.last?.id {
+                                Divider()
+                            }
+                        }
+                    }
+                    Button("Add session", systemImage: "calendar.badge.plus") {
+                        quickAddTarget = .session(chapter.course, chapter)
+                    }
+                    .buttonStyle(.bordered)
+                }
+                .padding()
+                .deskCard()
             }
-            Section("Sessions") {
-                ForEach(chapter.sessions.sorted { $0.startTime < $1.startTime }) { session in
-                    SessionRow(session: session)
-                }
-                Button("Add session", systemImage: "calendar.badge.plus") {
-                    quickAddTarget = .session(chapter.course, chapter)
-                }
-            }
+            .padding()
         }
         .navigationTitle(chapter.title)
+        .toolbar {
+            ToolbarItemGroup {
+                Button("Edit", systemImage: "pencil") { editingChapter = true }
+                Button("Delete", systemImage: "trash", role: .destructive) { deleteConfirmation = true }
+            }
+        }
+        .sheet(isPresented: $editingChapter) {
+            if let course = chapter.course {
+                ChapterFormView(course: course, chapter: chapter)
+            }
+        }
+        .confirmationDialog("Delete chapter?", isPresented: $deleteConfirmation) {
+            Button("Delete Chapter", role: .destructive) {
+                modelContext.delete(chapter)
+                try? modelContext.save()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(AcademicValidationService.shouldPreferArchive(chapter: chapter) ? "This chapter has linked sessions. Archive is safer unless you are certain." : "This cannot be undone.")
+        }
+        .onChange(of: chapter.status) { _, _ in
+            chapter.updatedAt = .now
+            try? modelContext.save()
+        }
     }
 }

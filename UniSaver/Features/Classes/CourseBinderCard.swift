@@ -4,82 +4,108 @@ struct CourseBinderCard: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let course: Course
     var isSelected: Bool = false
+    var isCompact = false
     @State private var isPressed = false
 
     private var color: Color { CourseColor.color(for: course.colorIdentifier) }
     private var progress: Double { AcademicValidationService.courseStructuralProgress(course) }
+    private var nextSession: ClassSession? {
+        course.sessions.filter { $0.startTime >= .now }.sorted { $0.startTime < $1.startTime }.first
+    }
+    private var hasResourceSignals: Bool {
+        !course.courseDescription.isEmpty || course.evaluationMethod != nil
+    }
 
     var body: some View {
         ZStack(alignment: .leading) {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(color.opacity(0.32))
-                .frame(width: 24)
-                .offset(x: -8, y: 8)
-                .shadow(color: color.opacity(0.28), radius: 8, x: -4, y: 6)
-
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(color.gradient)
-                .overlay(alignment: .leading) {
-                    Rectangle()
-                        .fill(.black.opacity(0.14))
-                        .frame(width: 18)
-                        .padding(.leading, 12)
-                }
-                .overlay(alignment: .topTrailing) {
-                    VStack(spacing: 4) {
-                        Capsule().fill(.white.opacity(0.72)).frame(width: 54, height: 8)
-                        Capsule().fill(.white.opacity(0.55)).frame(width: 42, height: 8)
-                    }
-                    .padding(14)
-                }
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .fill(StudyDeskTheme.surfacePrimary)
                 .overlay {
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack {
-                            Image(systemName: course.symbolName ?? "book.closed")
-                            Text(course.code.isEmpty ? "Course" : course.code)
-                            Spacer()
-                        }
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white.opacity(0.9))
-
-                        Spacer()
-
-                        Text(course.name)
-                            .font(.title3.weight(.bold))
-                            .foregroundStyle(.white)
-                            .lineLimit(2)
-                            .minimumScaleFactor(0.82)
-
-                        Text(course.professorName.isEmpty ? "No professor set" : course.professorName)
-                            .font(.caption)
-                            .foregroundStyle(.white.opacity(0.82))
-
-                        ProgressView(value: progress)
-                            .tint(.white)
-
-                        HStack {
-                            Label("\(course.chapters.filter { !$0.isArchived }.count)", systemImage: "list.number")
-                            Label("\(course.sessions.count)", systemImage: "calendar")
-                            Spacer()
-                            Text(progress, format: .percent.precision(.fractionLength(0)))
-                        }
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.white.opacity(0.88))
-                    }
-                    .padding(18)
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .stroke(StudyDeskTheme.borderSubtle, lineWidth: 1)
                 }
-                .shadow(color: .black.opacity(0.16), radius: 14, x: 0, y: 10)
+                .offset(x: 5, y: -5)
+                .padding(.leading, 12)
+                .padding(.trailing, 6)
+                .opacity(0.9)
+
+            HStack(spacing: 0) {
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(color)
+                    .frame(width: isCompact ? 9 : 12)
+                    .padding(.vertical, isCompact ? 10 : 12)
+
+                VStack(alignment: .leading, spacing: isCompact ? 8 : 10) {
+                    HStack(spacing: 8) {
+                        Image(systemName: CourseIconCatalog.sanitizedSymbolName(course.symbolName))
+                            .font((isCompact ? Font.body : Font.title3).weight(.semibold))
+                            .foregroundStyle(color)
+                            .frame(width: isCompact ? 28 : 30, height: isCompact ? 28 : 30)
+                            .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(course.code.isEmpty ? "Course" : course.code)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(color)
+                            Text(course.name)
+                                .font((isCompact ? Font.callout : Font.headline).weight(.bold))
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.9)
+                        }
+                        Spacer()
+                    }
+
+                    if !course.professorName.isEmpty {
+                        Text(course.professorName)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    ProgressBar(value: progress, color: color)
+
+                    HStack {
+                        Label("\(course.chapters.filter { !$0.isArchived }.count)", systemImage: "list.number")
+                        Label("\(course.sessions.count)", systemImage: "calendar")
+                        Spacer()
+                        if let nextSession {
+                            Text(UniDateFormatters.dayMonth.string(from: nextSession.date))
+                        } else {
+                            Text("No session")
+                        }
+                        Image(systemName: hasResourceSignals ? "doc.text.fill" : "doc.text")
+                            .foregroundStyle(hasResourceSignals ? color : .secondary)
+                            .accessibilityLabel(hasResourceSignals ? "Course information available" : "No resources yet")
+                    }
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                }
+                .padding(isCompact ? 14 : 16)
+            }
+            .background(StudyDeskTheme.surfacePrimary, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+            .overlay(alignment: .topTrailing) {
+                HStack(spacing: 4) {
+                    ForEach(course.chapters.filter { !$0.isArchived }.prefix(3)) { chapter in
+                        Capsule()
+                            .fill(color.opacity(chapter.status == .needsReview ? 0.5 : 0.28))
+                            .frame(width: 28, height: 7)
+                            .accessibilityLabel(chapter.title)
+                    }
+                }
+                .padding(12)
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .stroke(isSelected ? color.opacity(0.65) : StudyDeskTheme.borderSubtle, lineWidth: isSelected ? 1.5 : 1)
+            }
+            .shadow(color: isSelected ? color.opacity(0.16) : StudyDeskTheme.shadow, radius: isSelected ? 14 : 8, y: isSelected ? 7 : 3)
         }
-        .frame(height: 220)
-        .rotation3DEffect(.degrees(reduceMotion ? 0 : (isPressed ? 0 : -5)), axis: (x: 0, y: 1, z: 0), perspective: 0.55)
+        .frame(height: isCompact ? 136 : 150)
+        .rotation3DEffect(.degrees(reduceMotion ? 0 : (isPressed ? 0 : -1.5)), axis: (x: 0, y: 1, z: 0), perspective: 0.6)
         .scaleEffect(isPressed && !reduceMotion ? 0.98 : 1)
-        .overlay {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 3)
-        }
-        .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .background(isSelected ? color.opacity(0.06) : Color.clear, in: RoundedRectangle(cornerRadius: 11))
+        .contentShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
         .onTapGesture {
-            withAnimation(.spring(response: 0.22, dampingFraction: 0.78)) {
+            withAnimation(.spring(response: 0.22, dampingFraction: 0.82)) {
                 isPressed.toggle()
             }
         }
@@ -113,18 +139,79 @@ struct CourseListRow: View {
 
 struct CoursePreviewPane: View {
     let course: Course
+    @Binding var quickAddTarget: QuickAddTarget?
+
+    private var nextSession: ClassSession? {
+        course.sessions.filter { $0.startTime >= .now }.sorted { $0.startTime < $1.startTime }.first
+    }
+
+    private var recentChapters: [Chapter] {
+        course.chapters.filter { !$0.isArchived }.sorted { $0.order < $1.order }
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            CourseBinderCard(course: course, isSelected: true)
-                .frame(height: 190)
-            Text(course.name)
-                .font(.title2.weight(.bold))
-            Text(course.courseDescription.isEmpty ? "No description yet." : course.courseDescription)
-                .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                CourseColorBadge(colorIdentifier: course.colorIdentifier, size: 34)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(course.name)
+                        .font(.title3.weight(.bold))
+                    Text([course.code, course.professorName].filter { !$0.isEmpty }.joined(separator: " · "))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
             ProgressMeter(value: AcademicValidationService.courseStructuralProgress(course))
-            Label("\(course.chapters.filter { !$0.isArchived }.count) chapters", systemImage: "list.number")
-            Label("\(course.sessions.count) sessions", systemImage: "calendar")
+
+            if course.chapters.isEmpty && course.sessions.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Your course is ready")
+                        .font(.headline)
+                    Text("Add the first chapter, then schedule a class session or attach a resource.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                if let nextSession {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Next session")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                        Text(nextSession.title)
+                        Text("\(UniDateFormatters.dayMonth.string(from: nextSession.date)) · \(UniDateFormatters.interval(nextSession.startTime, nextSession.endTime))")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Recent chapters")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    ForEach(recentChapters.prefix(4)) { chapter in
+                        HStack {
+                            Text("\(chapter.number). \(chapter.title)")
+                                .lineLimit(1)
+                            Spacer()
+                            Text(chapter.status.title)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+
+            HStack {
+                NavigationLink("Open Course") {
+                    CourseWorkspaceView(course: course, quickAddTarget: $quickAddTarget)
+                }
+                .buttonStyle(.borderedProminent)
+                Button("Add Chapter") { quickAddTarget = .chapter(course) }
+                    .buttonStyle(.bordered)
+                Button("Add Session") { quickAddTarget = .session(course, nil) }
+                    .buttonStyle(.bordered)
+            }
             Spacer()
         }
         .padding()

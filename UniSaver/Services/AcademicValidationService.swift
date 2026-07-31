@@ -4,16 +4,20 @@ enum AcademicValidationError: Error, Equatable, LocalizedError {
     case emptyName
     case invalidDateRange
     case invalidTimeRange
+    case invalidDuration
     case semesterOutsideAcademicYear
     case chapterCourseMismatch
+    case duplicateCourse
 
     var errorDescription: String? {
         switch self {
         case .emptyName: "A name is required."
         case .invalidDateRange: "The end date must be after the start date."
         case .invalidTimeRange: "The end time must be after the start time."
+        case .invalidDuration: "The estimated duration must be positive."
         case .semesterOutsideAcademicYear: "Semester dates must fit inside the academic year."
         case .chapterCourseMismatch: "The chapter must belong to the selected course."
+        case .duplicateCourse: "A course with this name or code already exists in the selected semester."
         }
     }
 }
@@ -48,6 +52,39 @@ enum AcademicValidationService {
         }
         if let chapter, chapter.course !== course {
             throw AcademicValidationError.chapterCourseMismatch
+        }
+    }
+
+    static func validateTask(title: String, estimatedDuration: TimeInterval, course: Course?, chapter: Chapter?) throws {
+        guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw AcademicValidationError.emptyName
+        }
+        guard estimatedDuration > 0 else {
+            throw AcademicValidationError.invalidDuration
+        }
+        if let course, let chapter, chapter.course !== course {
+            throw AcademicValidationError.chapterCourseMismatch
+        }
+    }
+
+    static func validateExam(title: String, startTime: Date?, endTime: Date?, course: Course, chapters: [Chapter]) throws {
+        guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw AcademicValidationError.emptyName
+        }
+        if let startTime, let endTime, endTime <= startTime {
+            throw AcademicValidationError.invalidTimeRange
+        }
+        guard chapters.allSatisfy({ $0.course === course }) else {
+            throw AcademicValidationError.chapterCourseMismatch
+        }
+    }
+
+    static func validateStudyBlock(title: String, startDate: Date, endDate: Date) throws {
+        guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw AcademicValidationError.emptyName
+        }
+        guard endDate > startDate else {
+            throw AcademicValidationError.invalidTimeRange
         }
     }
 
