@@ -1,0 +1,26 @@
+# Xcode
+DerivedData/
+build/
+*.xcactivitylog
+*.xcresult
+*.moved-aside
+*.xccheckout
+*.xcscmblueprint
+
+# User state
+*.xcuserstate
+xcuserdata/
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# macOS
+.DS_Store
+
+# Logs and temporary output
+*.log
+tmp/
