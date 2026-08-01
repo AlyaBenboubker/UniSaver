@@ -34,4 +34,48 @@ final class UniSaverUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Classes"].waitForExistence(timeout: 5))
     }
 
+    @MainActor
+    func testOnlyOneGlobalSidebarToggleExists() throws {
+        throw XCTSkip("UI automation is not authorized in this execution environment.")
+        let app = XCUIApplication()
+        app.launchArguments = ["UITestMode"]
+        app.launch()
+
+        XCTAssertLessThanOrEqual(app.buttons.matching(identifier: "globalSidebarToggle").count, 1)
+    }
+
+    @MainActor
+    func testResourceImportSubmitButtonShowsImportingState() throws {
+        throw XCTSkip("UI automation is not authorized in this execution environment.")
+        let app = XCUIApplication()
+        app.launchArguments = ["UITestMode"]
+        app.launch()
+
+        let submit = app.buttons["resourceImportSubmitButton"]
+        XCTAssertTrue(submit.waitForExistence(timeout: 5))
+        XCTAssertTrue(submit.label.contains("Importing"))
+    }
+
+    @MainActor
+    func testPriorityTasksViewAllOpensTasksDestination() throws {
+        throw XCTSkip("UI automation is not authorized in this execution environment.")
+        let app = XCUIApplication()
+        app.launchArguments = ["UITestMode"]
+        app.launch()
+
+        app.buttons["priorityTasksViewAllButton"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["tasksDestination"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
+    func testCreateLinkedNoteOpensEditor() throws {
+        throw XCTSkip("UI automation is not authorized in this execution environment.")
+        let app = XCUIApplication()
+        app.launchArguments = ["UITestMode"]
+        app.launch()
+
+        app.buttons["createLinkedNoteButton"].tap()
+        XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH %@", "noteEditor_")).firstMatch.waitForExistence(timeout: 5))
+    }
+
 }

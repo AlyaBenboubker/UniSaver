@@ -167,6 +167,45 @@ enum ClassSessionType: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+enum AcademicResourceKind: String, Codable, CaseIterable, Identifiable {
+    case pdf
+    case image
+    case audio
+    case video
+    case document
+    case spreadsheet
+    case link
+    case other
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .pdf: "PDF"
+        case .image: "Image"
+        case .audio: "Audio"
+        case .video: "Video"
+        case .document: "Document"
+        case .spreadsheet: "Spreadsheet"
+        case .link: "Link"
+        case .other: "Other"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .pdf: "doc.richtext"
+        case .image: "photo"
+        case .audio: "waveform"
+        case .video: "play.rectangle"
+        case .document: "doc.text"
+        case .spreadsheet: "tablecells"
+        case .link: "link"
+        case .other: "doc"
+        }
+    }
+}
+
 @Model
 final class AcademicYear {
     @Attribute(.unique) var id: UUID
@@ -596,6 +635,159 @@ final class ReadingProgress {
 
     var progress: Double {
         min(max(Double(currentPage) / Double(totalPages), 0), 1)
+    }
+}
+
+@Model
+final class AcademicResource {
+    @Attribute(.unique) var id: UUID
+    var title: String
+    var resourceKind: AcademicResourceKind
+    var originalFileName: String
+    var resourceDescription: String
+    var storedRelativePath: String
+    var mimeType: String
+    var fileExtension: String
+    var fileSize: Int64
+    var contentHash: String?
+    var createdAt: Date
+    var updatedAt: Date
+    var lastOpenedAt: Date?
+    var readingProgress: Double
+    var lastPage: Int
+    var pageCount: Int
+    var isFavorite: Bool
+    var tags: [String]
+
+    var course: Course?
+    var chapter: Chapter?
+    var session: ClassSession?
+
+    init(
+        id: UUID = UUID(),
+        title: String,
+        resourceKind: AcademicResourceKind,
+        originalFileName: String,
+        resourceDescription: String = "",
+        storedRelativePath: String,
+        mimeType: String = "application/octet-stream",
+        fileExtension: String = "",
+        fileSize: Int64 = 0,
+        contentHash: String? = nil,
+        createdAt: Date = .now,
+        updatedAt: Date = .now,
+        lastOpenedAt: Date? = nil,
+        readingProgress: Double = 0,
+        lastPage: Int = 1,
+        pageCount: Int = 1,
+        isFavorite: Bool = false,
+        tags: [String] = [],
+        course: Course? = nil,
+        chapter: Chapter? = nil,
+        session: ClassSession? = nil
+    ) {
+        self.id = id
+        self.title = title
+        self.resourceKind = resourceKind
+        self.originalFileName = originalFileName
+        self.resourceDescription = resourceDescription
+        self.storedRelativePath = storedRelativePath
+        self.mimeType = mimeType
+        self.fileExtension = fileExtension
+        self.fileSize = fileSize
+        self.contentHash = contentHash
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.lastOpenedAt = lastOpenedAt
+        self.readingProgress = min(max(readingProgress, 0), 1)
+        self.lastPage = max(lastPage, 1)
+        self.pageCount = max(pageCount, 1)
+        self.isFavorite = isFavorite
+        self.tags = tags
+        self.course = course
+        self.chapter = chapter
+        self.session = session
+    }
+}
+
+@Model
+final class StudyNote {
+    @Attribute(.unique) var id: UUID
+    var title: String
+    var body: String
+    var createdAt: Date
+    var updatedAt: Date
+    var isPinned: Bool
+
+    var course: Course?
+    var chapter: Chapter?
+    var session: ClassSession?
+    var resource: AcademicResource?
+
+    init(
+        id: UUID = UUID(),
+        title: String,
+        body: String = "",
+        createdAt: Date = .now,
+        updatedAt: Date = .now,
+        isPinned: Bool = false,
+        course: Course? = nil,
+        chapter: Chapter? = nil,
+        session: ClassSession? = nil,
+        resource: AcademicResource? = nil
+    ) {
+        self.id = id
+        self.title = title
+        self.body = body
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.isPinned = isPinned
+        self.course = course
+        self.chapter = chapter
+        self.session = session
+        self.resource = resource
+    }
+}
+
+@Model
+final class CourseRecording {
+    @Attribute(.unique) var id: UUID
+    var title: String
+    var storedRelativePath: String
+    var duration: TimeInterval
+    var createdAt: Date
+    var updatedAt: Date
+    var notes: String?
+    var note: StudyNote?
+
+    var course: Course?
+    var chapter: Chapter?
+    var session: ClassSession?
+
+    init(
+        id: UUID = UUID(),
+        title: String,
+        storedRelativePath: String,
+        duration: TimeInterval = 0,
+        createdAt: Date = .now,
+        updatedAt: Date = .now,
+        course: Course? = nil,
+        chapter: Chapter? = nil,
+        session: ClassSession? = nil,
+        note: StudyNote? = nil,
+        notes: String? = nil
+    ) {
+        self.id = id
+        self.title = title
+        self.storedRelativePath = storedRelativePath
+        self.duration = duration
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.course = course
+        self.chapter = chapter
+        self.session = session
+        self.note = note
+        self.notes = notes
     }
 }
 

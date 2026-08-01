@@ -8,6 +8,9 @@ enum QuickAddTarget: Identifiable {
     case task(Course?, Chapter?, ClassSession?)
     case exam(Course?)
     case studyBlock(Course?, AcademicTask?)
+    case resource(Course?, Chapter?, ClassSession?)
+    case note(Course?, Chapter?, ClassSession?, AcademicResource?)
+    case recording(Course?, Chapter?, ClassSession?)
     case disabled(String)
 
     var id: String {
@@ -18,6 +21,9 @@ enum QuickAddTarget: Identifiable {
         case .task(let course, let chapter, let session): "task-\(course?.id.uuidString ?? "none")-\(chapter?.id.uuidString ?? "none")-\(session?.id.uuidString ?? "none")"
         case .exam(let course): "exam-\(course?.id.uuidString ?? "none")"
         case .studyBlock(let course, let task): "study-\(course?.id.uuidString ?? "none")-\(task?.id.uuidString ?? "none")"
+        case .resource(let course, let chapter, let session): "resource-\(course?.id.uuidString ?? "none")-\(chapter?.id.uuidString ?? "none")-\(session?.id.uuidString ?? "none")"
+        case .note(let course, let chapter, let session, let resource): "note-\(course?.id.uuidString ?? "none")-\(chapter?.id.uuidString ?? "none")-\(session?.id.uuidString ?? "none")-\(resource?.id.uuidString ?? "none")"
+        case .recording(let course, let chapter, let session): "recording-\(course?.id.uuidString ?? "none")-\(chapter?.id.uuidString ?? "none")-\(session?.id.uuidString ?? "none")"
         case .disabled(let title): "disabled-\(title)"
         }
     }
@@ -48,6 +54,12 @@ struct QuickAddSheet: View {
             ExamFormView(initialCourse: course)
         case .studyBlock(let course, let task):
             StudyBlockFormView(initialCourse: course, initialTask: task)
+        case .resource(let course, let chapter, let session):
+            ResourceImportView(initialCourse: course, initialChapter: chapter, initialSession: session)
+        case .note(let course, let chapter, let session, let resource):
+            QuickNoteCreatorView(initialCourse: course, initialChapter: chapter, initialSession: session, initialResource: resource)
+        case .recording(let course, let chapter, let session):
+            RecordingFormView(initialCourse: course, initialChapter: chapter, initialSession: session)
         case .disabled(let title):
             MissingContextView(title: title, message: "This option is documented for a future lot and is intentionally disabled in this build.")
         }
@@ -88,6 +100,50 @@ struct FutureQuickAddOptions: View {
     }
 }
 
+struct QuickNoteCreatorView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    let initialCourse: Course?
+    let initialChapter: Chapter?
+    let initialSession: ClassSession?
+    let initialResource: AcademicResource?
+    @State private var note: StudyNote?
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if let note {
+                    NoteEditorView(note: note)
+                } else {
+                    ProgressView("Creating note...")
+                        .task {
+                            createNote()
+                        }
+                }
+            }
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func createNote() {
+        guard note == nil else { return }
+        let created = StudyNote(
+            title: initialResource.map { "Notes on \($0.title)" } ?? "Untitled note",
+            course: initialCourse ?? initialResource?.course,
+            chapter: initialChapter ?? initialResource?.chapter,
+            session: initialSession ?? initialResource?.session,
+            resource: initialResource
+        )
+        modelContext.insert(created)
+        try? modelContext.save()
+        note = created
+    }
+}
+
 struct QuickAddMenu: View {
     @Query(sort: \Course.name) private var courses: [Course]
     @Binding var quickAddTarget: QuickAddTarget?
@@ -124,15 +180,21 @@ struct QuickAddMenu: View {
                 quickAddTarget = .studyBlock(defaultCourse, nil)
             }
             Divider()
-            Label("Import PDF", systemImage: "lock")
-                .foregroundStyle(.secondary)
-            Label("New Note", systemImage: "lock")
-                .foregroundStyle(.secondary)
+            Button("Import PDF/File", systemImage: "square.and.arrow.down") {
+                quickAddTarget = .resource(defaultCourse, nil, nil)
+            }
+            Button("New Note", systemImage: "note.text") {
+                quickAddTarget = .note(defaultCourse, nil, nil, nil)
+            }
+            Button("Start Recording", systemImage: "waveform") {
+                quickAddTarget = .recording(defaultCourse, nil, nil)
+            }
+            .disabled(defaultCourse == nil)
+            .help(defaultCourse == nil ? "Choose a course before recording." : "Record audio for the current course.")
+            Divider()
             Label("Create Flashcards", systemImage: "lock")
                 .foregroundStyle(.secondary)
             Label("Create Quiz", systemImage: "lock")
-                .foregroundStyle(.secondary)
-            Label("Start Recording", systemImage: "lock")
                 .foregroundStyle(.secondary)
             if defaultCourse == nil {
                 Divider()

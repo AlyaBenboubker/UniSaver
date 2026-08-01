@@ -7,6 +7,7 @@ struct ContentView: View {
     @State private var quickAddTarget: QuickAddTarget?
     @State private var columnVisibility: NavigationSplitViewVisibility = .detailOnly
     @State private var currentWindowWidth: CGFloat = 0
+    @State private var plannerTaskFilter: PlannerTaskFilter = .open
 
     private let primarySections: [AppSection] = [.today, .classes, .study, .planner, .progress, .library]
 
@@ -17,16 +18,6 @@ struct ContentView: View {
 
             NavigationSplitView(columnVisibility: $columnVisibility) {
                 VStack(spacing: 0) {
-                    HStack {
-                        Image(systemName: "sidebar.left")
-                            .font(.title3)
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.top, 14)
-                    .padding(.bottom, navigationMode == .compact ? 14 : 22)
-
                     VStack(spacing: navigationMode == .wide ? 8 : 6) {
                         ForEach(primarySections) { section in
                             SidebarNavigationButton(
@@ -41,6 +32,7 @@ struct ContentView: View {
                         }
                     }
                     .padding(.horizontal, 14)
+                    .padding(.top, navigationMode == .compact ? 18 : 24)
 
                     Spacer(minLength: 18)
 
@@ -86,16 +78,24 @@ struct ContentView: View {
                         case .study:
                             PlaceholderFeatureView(section: .study)
                         case .planner:
-                            PlaceholderFeatureView(section: .planner)
+                            PlannerView(initialFilter: plannerTaskFilter)
                         case .progress:
                             PlaceholderFeatureView(section: .progress)
                         case .library:
-                            PlaceholderFeatureView(section: .library)
+                            LibraryView()
                         case .settings:
                             SettingsView()
                         }
                     }
                     .toolbar {
+                        ToolbarItem(placement: .navigation) {
+                            Button {
+                                toggleSidebar(for: currentWindowWidth)
+                            } label: {
+                                Label("Toggle Sidebar", systemImage: "sidebar.left")
+                            }
+                            .accessibilityIdentifier("globalSidebarToggle")
+                        }
                         ToolbarItemGroup {
                             QuickAddMenu(quickAddTarget: $quickAddTarget)
                         }
@@ -130,6 +130,12 @@ struct ContentView: View {
                         DemoWorkspaceService.resetWorkspace(in: modelContext)
                         DemoWorkspaceService.startEmptyWorkspace(in: modelContext)
                         selection = .today
+                    }
+                    .onReceive(NotificationCenter.default.publisher(for: .openPlannerTasks)) { notification in
+                        if let filter = notification.object as? PlannerTaskFilter {
+                            plannerTaskFilter = filter
+                        }
+                        selection = .planner
                     }
                 }
             }
@@ -177,6 +183,14 @@ struct ContentView: View {
     private func closeSidebarIfCompact() {
         if currentWindowWidth < 900 {
             columnVisibility = .detailOnly
+        }
+    }
+
+    private func toggleSidebar(for totalWidth: CGFloat) {
+        if totalWidth < 900 {
+            columnVisibility = columnVisibility == .detailOnly ? .all : .detailOnly
+        } else {
+            columnVisibility = columnVisibility == .all ? .detailOnly : .all
         }
     }
 }

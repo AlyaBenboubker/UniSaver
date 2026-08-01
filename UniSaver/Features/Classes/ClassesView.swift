@@ -144,6 +144,9 @@ struct ClassesView: View {
                                 CourseBinderCard(course: course, isSelected: selectedCourse?.id == course.id, isCompact: layoutMode != .wide)
                             }
                             .buttonStyle(.plain)
+                            .contentShape(Rectangle())
+                            .accessibilityIdentifier("courseCard_\(course.id.uuidString)")
+                            .accessibilityLabel("Open \(course.name)")
                             .simultaneousGesture(TapGesture().onEnded { selectedCourse = course })
                             .contextMenu {
                                 courseMenu(course)
@@ -159,6 +162,9 @@ struct ClassesView: View {
                                 CourseListRow(course: course)
                             }
                             .buttonStyle(.plain)
+                            .contentShape(Rectangle())
+                            .accessibilityIdentifier("courseCard_\(course.id.uuidString)")
+                            .accessibilityLabel("Open \(course.name)")
                             .simultaneousGesture(TapGesture().onEnded { selectedCourse = course })
                             .contextMenu {
                                 courseMenu(course)

@@ -164,7 +164,7 @@ struct CourseFormView: View {
                         .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
-            .fullScreenCover(isPresented: $showsIconPicker) {
+            .courseIconPickerPresentation(isPresented: $showsIconPicker) {
                 CourseIconPickerView(selectedSymbolName: $symbolName, colorIdentifier: colorIdentifier)
             }
         }
@@ -295,6 +295,20 @@ private struct CourseAppearanceRow: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Course icon")
         .accessibilityValue(CourseIconCatalog.icon(for: CourseIconCatalog.sanitizedSymbolName(symbolName))?.title ?? "Default icon")
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func courseIconPickerPresentation<Content: View>(isPresented: Binding<Bool>, @ViewBuilder content: @escaping () -> Content) -> some View {
+        #if os(iOS)
+        self.fullScreenCover(isPresented: isPresented, content: content)
+        #else
+        self.sheet(isPresented: isPresented) {
+            content()
+                .frame(minWidth: 760, minHeight: 620)
+        }
+        #endif
     }
 }
 

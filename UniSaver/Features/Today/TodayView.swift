@@ -255,11 +255,8 @@ struct DashboardHeader: View {
 
     private var secondaryButtons: some View {
         HStack(spacing: 8) {
-            Button {} label: {
-                Image(systemName: "bell")
-                    .frame(width: 32, height: 32)
-            }
-            .buttonStyle(.borderless)
+            Image(systemName: "bell")
+                .frame(width: 32, height: 32)
             .foregroundStyle(.secondary)
             .accessibilityLabel("Notifications not configured")
             .help("Notifications arrive in a later lot.")
@@ -349,10 +346,12 @@ struct ScheduleTimeline: View {
                 Text("Today's Schedule")
                     .font(.headline)
                 Spacer()
-                Button("View full day") {}
+                Button("View full day") {
+                    NotificationCenter.default.post(name: .openPlannerTasks, object: PlannerTaskFilter.all)
+                }
                     .font(.caption.weight(.medium))
                     .buttonStyle(.bordered)
-                    .help("Planner day view arrives in a later lot.")
+                    .help("Open Planner")
             }
 
             if items.isEmpty {
@@ -702,10 +701,13 @@ struct PriorityTaskList: View {
                 .font(.caption)
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
-                Button("View all") {}
+                Button("View all") {
+                    NotificationCenter.default.post(name: .openPlannerTasks, object: PlannerTaskFilter.priority)
+                }
                     .font(.caption.weight(.medium))
                     .buttonStyle(.bordered)
-                    .help("Full task view arrives with Planner.")
+                    .accessibilityIdentifier("priorityTasksViewAllButton")
+                    .help("Open priority tasks in Planner.")
             }
 
             if tasks.isEmpty {
@@ -899,26 +901,29 @@ struct FlashcardsDueSummary: View {
 
 struct ContinueReadingCard: View {
     let reading: ReadingProgress?
+    @Query(sort: \AcademicResource.lastOpenedAt, order: .reverse) private var resources: [AcademicResource]
+
+    private var matchedResource: AcademicResource? {
+        guard let reading else { return nil }
+        return resources.first {
+            $0.resourceKind == .pdf &&
+            $0.title == reading.resourceTitle &&
+            $0.course?.id == reading.course?.id
+        }
+    }
 
     var body: some View {
         SummaryCard(title: "Continue Reading", systemImage: "book") {
             if let reading {
-                HStack(spacing: 12) {
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(CourseColor.color(for: reading.coverColorIdentifier))
-                        .frame(width: 50, height: 66)
-                        .overlay(Image(systemName: "doc.richtext").foregroundStyle(.white))
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text(reading.resourceTitle)
-                            .font(.callout.weight(.semibold))
-                            .lineLimit(2)
-                        Text(reading.course?.name ?? "Resource")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Text("Page \(reading.currentPage) of \(reading.totalPages) · \(reading.progress.formatted(.percent.precision(.fractionLength(0))))")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                if let matchedResource {
+                    NavigationLink {
+                        ResourceDetailView(resource: matchedResource)
+                    } label: {
+                        readingContent(reading)
                     }
+                    .buttonStyle(.plain)
+                } else {
+                    readingContent(reading)
                 }
                 ProgressBar(value: reading.progress, color: CourseColor.color(for: reading.coverColorIdentifier))
                 Text("Last opened \(UniDateFormatters.dayMonth.string(from: reading.lastOpenedAt))")
@@ -926,6 +931,26 @@ struct ContinueReadingCard: View {
                     .foregroundStyle(.secondary)
             } else {
                 Text("No reading progress yet.")
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func readingContent(_ reading: ReadingProgress) -> some View {
+        HStack(spacing: 12) {
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(CourseColor.color(for: reading.coverColorIdentifier))
+                .frame(width: 50, height: 66)
+                .overlay(Image(systemName: "doc.richtext").foregroundStyle(.white))
+            VStack(alignment: .leading, spacing: 5) {
+                Text(reading.resourceTitle)
+                    .font(.callout.weight(.semibold))
+                    .lineLimit(2)
+                Text(reading.course?.name ?? "Resource")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text("Page \(reading.currentPage) of \(reading.totalPages) · \(reading.progress.formatted(.percent.precision(.fractionLength(0))))")
+                    .font(.caption)
                     .foregroundStyle(.secondary)
             }
         }

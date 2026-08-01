@@ -104,11 +104,6 @@ struct CourseBinderCard: View {
         .scaleEffect(isPressed && !reduceMotion ? 0.98 : 1)
         .background(isSelected ? color.opacity(0.06) : Color.clear, in: RoundedRectangle(cornerRadius: 11))
         .contentShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
-        .onTapGesture {
-            withAnimation(.spring(response: 0.22, dampingFraction: 0.82)) {
-                isPressed.toggle()
-            }
-        }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(course.name), \(course.chapters.count) chapters, \(course.sessions.count) sessions")
     }

@@ -21,6 +21,7 @@ struct CourseWorkspaceView: View {
     @State private var editingCourse = false
     @State private var deleteConfirmation = false
     @State private var archiveConfirmation = false
+    @State private var importingResource = false
 
     private var visibleChapters: [Chapter] {
         course.chapters.filter { !$0.isArchived }.sorted { $0.order < $1.order }
@@ -54,9 +55,9 @@ struct CourseWorkspaceView: View {
                 case .sessions:
                     SessionListView(course: course, quickAddTarget: $quickAddTarget)
                 case .resources:
-                    FutureCourseAreaView(title: "Resources", message: "PDF reader and file imports arrive in the Resources lot.", systemImage: "doc.richtext")
+                    CourseResourcesView(course: course, quickAddTarget: $quickAddTarget)
                 case .notes:
-                    FutureCourseAreaView(title: "Notes", message: "Rich notes, PencilKit and autosave arrive in the Notes lot.", systemImage: "note.text")
+                    CourseNotesView(course: course)
                 case .study:
                     FutureCourseAreaView(title: "Study", message: "Flashcards, quizzes and spaced repetition arrive in Study Studio.", systemImage: "rectangle.stack.badge.play")
                 }
@@ -66,6 +67,7 @@ struct CourseWorkspaceView: View {
             .clipped()
         }
         .navigationTitle(course.name)
+        .accessibilityIdentifier("courseWorkspace_\(course.id.uuidString)")
         .toolbar {
             ToolbarItemGroup {
                 Button("Edit Course", systemImage: "pencil") { editingCourse = true }
@@ -75,6 +77,9 @@ struct CourseWorkspaceView: View {
                     Divider()
                     Button("New Chapter", systemImage: "list.number") { quickAddTarget = .chapter(course) }
                     Button("New Session", systemImage: "calendar.badge.plus") { quickAddTarget = .session(course, nil) }
+                    Button("Import Resource", systemImage: "square.and.arrow.down") { quickAddTarget = .resource(course, nil, nil) }
+                    Button("New Note", systemImage: "note.text") { quickAddTarget = .note(course, nil, nil, nil) }
+                    Button("Start Recording", systemImage: "waveform") { quickAddTarget = .recording(course, nil, nil) }
                     Divider()
                     Button(course.isArchived ? "Restore" : "Archive", systemImage: "archivebox") {
                         archiveConfirmation = true
@@ -294,9 +299,7 @@ struct CourseGettingStartedView: View {
                 gettingStartedRow(1, "Complete course details", "doc.text", action: { editingCourse = true })
                 gettingStartedRow(2, "Create first chapter", "list.number", action: { quickAddTarget = .chapter(course) })
                 gettingStartedRow(3, "Schedule first session", "calendar.badge.plus", action: { quickAddTarget = .session(course, nil) })
-                gettingStartedRow(4, "Add first resource", "doc.richtext", action: {})
-                    .disabled(true)
-                    .help("PDF reader arrives in the Resources lot.")
+                gettingStartedRow(4, "Add first resource", "doc.richtext", action: { quickAddTarget = .resource(course, nil, nil) })
             }
         }
         .padding()
@@ -322,6 +325,60 @@ struct CourseGettingStartedView: View {
             .padding(.vertical, 4)
         }
         .buttonStyle(.plain)
+    }
+}
+
+struct CourseResourcesView: View {
+    let course: Course
+    @Binding var quickAddTarget: QuickAddTarget?
+    @Query(sort: \AcademicResource.updatedAt, order: .reverse) private var resources: [AcademicResource]
+    @Query(sort: \CourseRecording.updatedAt, order: .reverse) private var recordings: [CourseRecording]
+
+    private var courseResources: [AcademicResource] {
+        resources.filter { $0.course?.id == course.id }
+    }
+
+    private var courseRecordings: [CourseRecording] {
+        recordings.filter { $0.course?.id == course.id }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ResourceCollectionView(resources: courseResources, emptyTitle: "No resources for \(course.name)") {
+                quickAddTarget = .resource(course, nil, nil)
+            }
+            if !courseRecordings.isEmpty {
+                Divider()
+                RecordingListView(recordings: courseRecordings)
+                    .frame(minHeight: 180)
+            }
+        }
+        .toolbar {
+            ToolbarItem {
+                Button("Import File", systemImage: "square.and.arrow.down") {
+                    quickAddTarget = .resource(course, nil, nil)
+                }
+            }
+        }
+    }
+}
+
+struct CourseNotesView: View {
+    @Environment(\.modelContext) private var modelContext
+    let course: Course
+    @Query(sort: \StudyNote.updatedAt, order: .reverse) private var notes: [StudyNote]
+
+    private var courseNotes: [StudyNote] {
+        notes.filter { $0.course?.id == course.id }
+    }
+
+    var body: some View {
+        NoteListView(notes: courseNotes, emptyTitle: "No notes for \(course.name)") {
+            let note = StudyNote(title: "\(course.name) note", course: course)
+            modelContext.insert(note)
+            try? modelContext.save()
+            return note
+        }
     }
 }
 

@@ -110,6 +110,7 @@ struct TaskFormView: View {
             } else {
                 modelContext.insert(AcademicTask(title: title, taskDescription: taskDescription, dueDate: dueDate, priority: priority, status: status, estimatedDuration: duration, course: selectedCourse, chapter: selectedChapter))
             }
+            try modelContext.save()
             dismiss()
         } catch {
             errorMessage = error.localizedDescription

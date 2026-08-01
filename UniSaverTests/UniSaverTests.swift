@@ -418,6 +418,213 @@ struct UniSaverTests {
         #expect(CourseIconCatalog.icons.contains { CourseIconCatalog.matches($0, query: "code") })
     }
 
+    @Test func academicFileStoreCopiesAndDeletesOnlyTargetFile() throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: "UniSaverFileStore-\(UUID().uuidString)", directoryHint: .isDirectory)
+        let source = FileManager.default.temporaryDirectory.appending(path: "source-\(UUID().uuidString).pdf")
+        let unrelatedName = "keep-\(UUID().uuidString).pdf"
+        let unrelated = root.appending(path: unrelatedName)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        try Data("pdf".utf8).write(to: source, options: .atomic)
+        try Data("keep".utf8).write(to: unrelated, options: .atomic)
+
+        let store = AcademicFileStore(rootDirectory: root)
+        let stored = try store.importFile(from: source)
+        #expect(stored.originalFileName == source.lastPathComponent)
+        #expect(stored.resourceKind == .pdf)
+        #expect(!stored.contentHash.isEmpty)
+        #expect(try store.url(for: stored.storedRelativePath).lastPathComponent == stored.storedRelativePath)
+
+        try store.delete(relativePath: stored.storedRelativePath)
+        #expect(FileManager.default.fileExists(atPath: unrelated.path))
+        try? FileManager.default.removeItem(at: root)
+        try? FileManager.default.removeItem(at: source)
+    }
+
+    @Test func noteRecordingKeepsAcademicContextAndPersists() throws {
+        let container = try inMemoryContainer()
+        let context = ModelContext(container)
+        let course = Course(name: "Microeconomics", code: "ECO")
+        let chapter = Chapter(number: 1, title: "Elasticity", order: 1, course: course)
+        let start = Date()
+        let session = ClassSession(number: 1, title: "Lecture", date: start, startTime: start, endTime: start.addingTimeInterval(3600), course: course, chapter: chapter)
+        let note = StudyNote(title: "Lecture notes", body: "Initial notes", course: course, chapter: chapter, session: session)
+        let recording = CourseRecording(title: "Lecture recording", storedRelativePath: "recording.m4a", duration: 120, course: course, chapter: chapter, session: session, note: note)
+        context.insert(course)
+        context.insert(chapter)
+        context.insert(session)
+        context.insert(note)
+        context.insert(recording)
+        try context.save()
+
+        let saved = try #require(try context.fetch(FetchDescriptor<CourseRecording>()).first)
+        #expect(saved.note?.id == note.id)
+        #expect(saved.course?.id == course.id)
+        #expect(saved.chapter?.id == chapter.id)
+        #expect(saved.session?.id == session.id)
+    }
+
+    @Test func demoWorkspaceCreatesContentWorkspaceData() throws {
+        let container = try inMemoryContainer()
+        let context = ModelContext(container)
+        DemoWorkspaceService.loadDemoWorkspace(in: context)
+
+        let resources = try context.fetch(FetchDescriptor<AcademicResource>())
+        let notes = try context.fetch(FetchDescriptor<StudyNote>())
+        let recordings = try context.fetch(FetchDescriptor<CourseRecording>())
+
+        #expect(resources.contains { $0.resourceKind == .pdf && !$0.storedRelativePath.isEmpty })
+        #expect(notes.count >= 2)
+        #expect(recordings.contains { $0.duration > 0 })
+    }
+
+    @Test func resourceImportValidationReturnsExplicitErrors() {
+        let empty = ResourceImportValidation.validate(ResourceImportDraft(fileURL: nil, title: "", resourceDescription: "", course: nil, chapter: nil, session: nil, tags: []))
+        #expect(empty.fileError == "Choose a file to import.")
+        #expect(empty.titleError == "Enter a title.")
+        #expect(empty.courseError == "Choose a course.")
+        #expect([empty.fileError, empty.titleError, empty.courseError].compactMap { $0 }.allSatisfy { !$0.contains("%{PROPERTY}@") })
+
+        let course = Course(name: "Law", code: "LAW")
+        let otherCourse = Course(name: "Math", code: "MAT")
+        let wrongChapter = Chapter(number: 1, title: "Algebra", order: 1, course: otherCourse)
+        let validation = ResourceImportValidation.validate(ResourceImportDraft(fileURL: URL(filePath: "/tmp/file.pdf"), title: "Reader", resourceDescription: "", course: course, chapter: wrongChapter, session: nil, tags: []))
+        #expect(validation.chapterError == "The selected chapter does not belong to this course.")
+    }
+
+    @Test func completeResourceImportDraftHasNoErrors() throws {
+        let source = FileManager.default.temporaryDirectory.appending(path: "complete-\(UUID().uuidString).pdf")
+        try Data("pdf".utf8).write(to: source, options: .atomic)
+        let course = Course(name: "Microeconomics", code: "ECO")
+        let draft = ResourceImportDraft(fileURL: source, title: "Elasticity Reader", resourceDescription: "", course: course, chapter: nil, session: nil, tags: ["pdf"])
+
+        #expect(ResourceImportValidation.validate(draft).isValid)
+        try? FileManager.default.removeItem(at: source)
+    }
+
+    @MainActor
+    @Test func resourceImportUsesDraftTitleAndTechnicalNameOnlyForStorage() throws {
+        let container = try inMemoryContainer()
+        let context = ModelContext(container)
+        let root = FileManager.default.temporaryDirectory.appending(path: "UniSaverImport-\(UUID().uuidString)", directoryHint: .isDirectory)
+        let source = FileManager.default.temporaryDirectory.appending(path: "codex agent-\(UUID().uuidString).pdf")
+        try Data("same pdf".utf8).write(to: source, options: .atomic)
+        let course = Course(name: "Microeconomics", code: "ECO")
+        context.insert(course)
+        try context.save()
+
+        let draft = ResourceImportDraft(fileURL: source, title: "Price Elasticity Reader", resourceDescription: "", course: course, chapter: nil, session: nil, tags: [])
+        let resource = try ResourceImportService.submit(draft: draft, existingResources: [], modelContext: context, fileStore: AcademicFileStore(rootDirectory: root))
+
+        #expect(resource.title == "Price Elasticity Reader")
+        #expect(resource.originalFileName == source.lastPathComponent)
+        #expect(resource.storedRelativePath != resource.title)
+        #expect(resource.storedRelativePath.contains(resource.id.uuidString) == false)
+        try? FileManager.default.removeItem(at: root)
+        try? FileManager.default.removeItem(at: source)
+    }
+
+    @MainActor
+    @Test func repeatedResourceImportDetectsDuplicateUnlessUserAllowsCopy() throws {
+        let container = try inMemoryContainer()
+        let context = ModelContext(container)
+        let root = FileManager.default.temporaryDirectory.appending(path: "UniSaverDuplicate-\(UUID().uuidString)", directoryHint: .isDirectory)
+        let source = FileManager.default.temporaryDirectory.appending(path: "duplicate-\(UUID().uuidString).pdf")
+        try Data("duplicate pdf".utf8).write(to: source, options: .atomic)
+        let course = Course(name: "Microeconomics", code: "ECO")
+        context.insert(course)
+        try context.save()
+        let store = AcademicFileStore(rootDirectory: root)
+        let draft = ResourceImportDraft(fileURL: source, title: "Reader", resourceDescription: "", course: course, chapter: nil, session: nil, tags: [])
+
+        _ = try ResourceImportService.submit(draft: draft, existingResources: [], modelContext: context, fileStore: store)
+        let existing = try context.fetch(FetchDescriptor<AcademicResource>())
+        #expect(existing.count == 1)
+
+        do {
+            _ = try ResourceImportService.submit(draft: draft, existingResources: existing, modelContext: context, fileStore: store)
+            Issue.record("Expected duplicate detection")
+        } catch ResourceImportSubmitError.duplicate {
+            #expect(true)
+        }
+        #expect(try context.fetch(FetchDescriptor<AcademicResource>()).count == 1)
+
+        _ = try ResourceImportService.submit(draft: draft, existingResources: existing, modelContext: context, fileStore: store, allowDuplicate: true)
+        #expect(try context.fetch(FetchDescriptor<AcademicResource>()).count == 2)
+        try? FileManager.default.removeItem(at: root)
+        try? FileManager.default.removeItem(at: source)
+    }
+
+    @MainActor
+    @Test func copyFailureCreatesNoResource() throws {
+        let container = try inMemoryContainer()
+        let context = ModelContext(container)
+        let course = Course(name: "Microeconomics", code: "ECO")
+        context.insert(course)
+        try context.save()
+
+        let missingURL = FileManager.default.temporaryDirectory.appending(path: "missing-\(UUID().uuidString).pdf")
+        let draft = ResourceImportDraft(fileURL: missingURL, title: "Reader", resourceDescription: "", course: course, chapter: nil, session: nil, tags: [])
+
+        do {
+            _ = try ResourceImportService.submit(draft: draft, existingResources: [], modelContext: context, fileStore: AcademicFileStore())
+            Issue.record("Expected missing source to fail")
+        } catch {
+            #expect(try context.fetch(FetchDescriptor<AcademicResource>()).isEmpty)
+        }
+    }
+
+    @Test func plannerPriorityFilterMatchesTodayPriorityTasks() {
+        let now = Date()
+        let course = Course(name: "Microeconomics", code: "ECO")
+        let urgent = AcademicTask(title: "Submit sheet", dueDate: now, priority: .urgent, course: course)
+        let high = AcademicTask(title: "Review notes", dueDate: now.addingTimeInterval(3600), priority: .high, course: course)
+        let medium = AcademicTask(title: "Read chapter", dueDate: now.addingTimeInterval(7200), priority: .medium, course: course)
+        let completedUrgent = AcademicTask(title: "Old task", dueDate: now, priority: .urgent, status: .completed, course: course)
+
+        let result = PlannerTaskQuery.filteredTasks([medium, completedUrgent, urgent, high], filter: .priority, searchText: "", courseID: nil)
+
+        #expect(result.map(\.title).contains("Submit sheet"))
+        #expect(result.map(\.title).contains("Review notes"))
+        #expect(!result.map(\.title).contains("Read chapter"))
+        #expect(!result.map(\.title).contains("Old task"))
+    }
+
+    @Test func plannerSortingByPriorityUsesDueDateAsTieBreaker() {
+        let now = Date()
+        let laterUrgent = AcademicTask(title: "Later urgent", dueDate: now.addingTimeInterval(7200), priority: .urgent)
+        let soonerUrgent = AcademicTask(title: "Sooner urgent", dueDate: now.addingTimeInterval(3600), priority: .urgent)
+        let high = AcademicTask(title: "High", dueDate: now, priority: .high)
+
+        let sorted = PlannerTaskQuery.sortedTasks([high, laterUrgent, soonerUrgent], sort: .priority)
+        #expect(sorted.map(\.title) == ["Sooner urgent", "Later urgent", "High"])
+    }
+
+    @MainActor
+    @Test func linkedNoteCreationIsIdempotentAndKeepsContext() throws {
+        let container = try inMemoryContainer()
+        let context = ModelContext(container)
+        let course = Course(name: "Microeconomics", code: "ECO")
+        let chapter = Chapter(number: 1, title: "Elasticity", order: 1, course: course)
+        let start = Date()
+        let session = ClassSession(number: 1, title: "Lecture", date: start, startTime: start, endTime: start.addingTimeInterval(3600), course: course, chapter: chapter)
+        let resource = AcademicResource(title: "Reader", resourceKind: .pdf, originalFileName: "reader.pdf", storedRelativePath: "reader.pdf", course: course, chapter: chapter, session: session)
+        context.insert(course)
+        context.insert(chapter)
+        context.insert(session)
+        context.insert(resource)
+        try context.save()
+
+        let first = try LinkedNoteService.note(for: resource, existingNotes: [], in: context)
+        let second = try LinkedNoteService.note(for: resource, existingNotes: try context.fetch(FetchDescriptor<StudyNote>()), in: context)
+
+        #expect(first.id == second.id)
+        #expect(try context.fetch(FetchDescriptor<StudyNote>()).count == 1)
+        #expect(first.course?.id == course.id)
+        #expect(first.chapter?.id == chapter.id)
+        #expect(first.session?.id == session.id)
+        #expect(first.resource?.id == resource.id)
+    }
+
     private func inMemoryContainer() throws -> ModelContainer {
         let configuration = ModelConfiguration("TestStore", schema: PersistenceController.schema, isStoredInMemoryOnly: true)
         return try ModelContainer(for: PersistenceController.schema, configurations: [configuration])

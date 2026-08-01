@@ -64,4 +64,5 @@ extension Notification.Name {
     static let resetWorkspaceChoice = Notification.Name("resetWorkspaceChoice")
     static let startEmptyWorkspace = Notification.Name("startEmptyWorkspace")
     static let courseCreated = Notification.Name("courseCreated")
+    static let openPlannerTasks = Notification.Name("openPlannerTasks")
 }

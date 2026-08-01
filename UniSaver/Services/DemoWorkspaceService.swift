@@ -21,6 +21,9 @@ enum DemoWorkspaceService {
 
     static func resetWorkspace(in context: ModelContext) {
         deleteAll(ClassSession.self, in: context)
+        deleteAll(CourseRecording.self, in: context)
+        deleteAll(StudyNote.self, in: context)
+        deleteAll(AcademicResource.self, in: context)
         deleteAll(StudyBlock.self, in: context)
         deleteAll(AcademicTask.self, in: context)
         deleteAll(Exam.self, in: context)

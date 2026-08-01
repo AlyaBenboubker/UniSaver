@@ -104,5 +104,78 @@ enum PreviewDataFactory {
         context.insert(Exam(title: "Microeconomics Midterm", date: examDay, startTime: examStart, endTime: examEnd, room: "B204", examType: .midterm, notes: "Covers supply, demand, and elasticity.", course: micro, chapters: micro.chapters))
 
         context.insert(ReadingProgress(resourceTitle: "Price Elasticity Reader", currentPage: 38, totalPages: 96, lastOpenedAt: calendar.date(byAdding: .hour, value: -3, to: .now) ?? .now, course: micro, chapter: micro.chapters.first { $0.title == "Price Elasticity" }, coverColorIdentifier: micro.colorIdentifier))
+        addContentDemoData(context: context, courses: courses, calendar: calendar)
+    }
+
+    private static func addContentDemoData(context: ModelContext, courses: [Course], calendar: Calendar) {
+        let fileStore = AcademicFileStore()
+        let micro = courses[0]
+        let math = courses[1]
+        let chapter = micro.chapters.first { $0.title == "Price Elasticity" }
+        let session = micro.sessions.first { $0.chapter?.id == chapter?.id } ?? micro.sessions.first
+
+        if let stored = try? fileStore.writeDemoFile(named: "unisaver-demo-price-elasticity.pdf", data: demoPDFData()) {
+            let resource = AcademicResource(
+                title: "Price Elasticity Reader",
+                resourceKind: .pdf,
+                originalFileName: stored.originalFileName,
+                storedRelativePath: stored.storedRelativePath,
+                mimeType: stored.mimeType,
+                fileExtension: stored.fileExtension,
+                fileSize: stored.fileSize,
+                lastOpenedAt: calendar.date(byAdding: .hour, value: -3, to: .now),
+                readingProgress: 0.4,
+                lastPage: 2,
+                pageCount: 5,
+                isFavorite: true,
+                tags: ["demo", "elasticity"],
+                course: micro,
+                chapter: chapter,
+                session: session
+            )
+            context.insert(resource)
+            context.insert(StudyNote(title: "Elasticity review notes", body: "## Key points\n- Elastic demand responds strongly to price changes.\n- Compare percentage changes in quantity and price.", isPinned: true, course: micro, chapter: chapter, session: session, resource: resource))
+        }
+
+        context.insert(StudyNote(title: "Optimization checklist", body: "- [ ] Review constraints\n- [ ] Check derivatives\n- [ ] Submit clean solution", course: math, chapter: math.chapters.first))
+
+        if let storedAudio = try? fileStore.writeDemoFile(named: "unisaver-demo-recording.m4a", data: Data("Demo recording placeholder created by UniSaver.\n".utf8)) {
+            context.insert(CourseRecording(title: "Demand Curves lecture recording", storedRelativePath: storedAudio.storedRelativePath, duration: 540, course: micro, chapter: micro.chapters.first, session: micro.sessions.first, notes: "Demo metadata. Replace with a real recording from the recorder."))
+        }
+    }
+
+    private static func demoPDFData() -> Data {
+        let text = """
+        %PDF-1.4
+        1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
+        2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj
+        3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj
+        4 0 obj << /Length 145 >> stream
+        BT
+        /F1 24 Tf
+        72 720 Td
+        (UniSaver Demo Reader) Tj
+        /F1 14 Tf
+        0 -40 Td
+        (Original demo PDF for testing the integrated reader.) Tj
+        0 -24 Td
+        (Topic: Price Elasticity) Tj
+        ET
+        endstream endobj
+        5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj
+        xref
+        0 6
+        0000000000 65535 f 
+        0000000009 00000 n 
+        0000000058 00000 n 
+        0000000115 00000 n 
+        0000000241 00000 n 
+        0000000440 00000 n 
+        trailer << /Root 1 0 R /Size 6 >>
+        startxref
+        510
+        %%EOF
+        """
+        return Data(text.utf8)
     }
 }

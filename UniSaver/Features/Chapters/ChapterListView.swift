@@ -113,11 +113,26 @@ struct ChapterDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Bindable var chapter: Chapter
     @Binding var quickAddTarget: QuickAddTarget?
+    @Query(sort: \AcademicResource.updatedAt, order: .reverse) private var resources: [AcademicResource]
+    @Query(sort: \StudyNote.updatedAt, order: .reverse) private var notes: [StudyNote]
+    @Query(sort: \CourseRecording.updatedAt, order: .reverse) private var recordings: [CourseRecording]
     @State private var editingChapter = false
     @State private var deleteConfirmation = false
 
     private var sortedSessions: [ClassSession] {
         chapter.sessions.sorted { $0.startTime < $1.startTime }
+    }
+
+    private var chapterResources: [AcademicResource] {
+        resources.filter { $0.chapter?.id == chapter.id }
+    }
+
+    private var chapterNotes: [StudyNote] {
+        notes.filter { $0.chapter?.id == chapter.id }
+    }
+
+    private var chapterRecordings: [CourseRecording] {
+        recordings.filter { $0.chapter?.id == chapter.id }
     }
 
     var body: some View {
@@ -143,6 +158,10 @@ struct ChapterDetailView: View {
                 }
                 .padding()
                 .deskCard()
+
+                linkedContentSection
+                    .padding()
+                    .deskCard()
 
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Sessions")
@@ -192,6 +211,37 @@ struct ChapterDetailView: View {
         .onChange(of: chapter.status) { _, _ in
             chapter.updatedAt = .now
             try? modelContext.save()
+        }
+    }
+
+    private var linkedContentSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Linked content")
+                .font(.headline)
+            if chapterResources.isEmpty && chapterNotes.isEmpty && chapterRecordings.isEmpty {
+                Text("No resources, notes, or recordings linked yet.")
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(chapterResources.prefix(3)) { ResourceRow(resource: $0) }
+                ForEach(chapterNotes.prefix(3)) { note in
+                    Label(note.title, systemImage: "note.text")
+                }
+                ForEach(chapterRecordings.prefix(3)) { recording in
+                    Label(recording.title, systemImage: "waveform")
+                }
+            }
+            HStack {
+                Button("Import", systemImage: "square.and.arrow.down") {
+                    quickAddTarget = .resource(chapter.course, chapter, nil)
+                }
+                Button("New Note", systemImage: "note.text") {
+                    quickAddTarget = .note(chapter.course, chapter, nil, nil)
+                }
+                Button("Record", systemImage: "waveform") {
+                    quickAddTarget = .recording(chapter.course, chapter, nil)
+                }
+            }
+            .buttonStyle(.bordered)
         }
     }
 }
