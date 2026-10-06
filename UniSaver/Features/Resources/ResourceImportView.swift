@@ -27,6 +27,7 @@ struct ResourceImportView: View {
     @State private var duplicateResource: AcademicResource?
     @State private var isFileImporterPresented = false
     @State private var isImporting = false
+    @State private var showsCourseForm = false
 
     private let fileStore = AcademicFileStore()
 
@@ -161,6 +162,15 @@ struct ResourceImportView: View {
             } message: {
                 Text("The same file is already linked to this course context.")
             }
+            .sheet(isPresented: $showsCourseForm) {
+                CourseFormView()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .courseCreated)) { notification in
+                if let course = notification.object as? Course {
+                    selectedCourseID = course.id
+                    showsCourseForm = false
+                }
+            }
         }
         .presentationDetents([.medium, .large])
         .presentationContentInteraction(.scrolls)
@@ -231,10 +241,15 @@ struct ResourceImportView: View {
                     .textFieldStyle(.roundedBorder)
             }
             labeledField("Course", error: displayedValidation.courseError) {
-                Picker("Course", selection: $selectedCourseID) {
-                    Text("Choose course").tag(UUID?.none)
-                    ForEach(courses.filter { !$0.isArchived }) { course in
-                        Text(course.name).tag(Optional(course.id))
+                HStack {
+                    Picker("Course", selection: $selectedCourseID) {
+                        Text("Non classé").tag(UUID?.none)
+                        ForEach(courses.filter { !$0.isArchived }) { course in
+                            Text(course.name).tag(Optional(course.id))
+                        }
+                    }
+                    Button("Créer un cours", systemImage: "plus") {
+                        showsCourseForm = true
                     }
                 }
             }
@@ -381,6 +396,296 @@ struct ResourceImportView: View {
             importError = error.localizedDescription
             isImporting = false
         }
+    }
+}
+
+struct CourseContentImportSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \Course.name) private var courses: [Course]
+    @Query(sort: \AcademicResource.updatedAt, order: .reverse) private var resources: [AcademicResource]
+
+    let initialCourse: Course?
+    let initialChapter: Chapter?
+    let initialSession: ClassSession?
+
+    @State private var selectedCourseID: UUID?
+    @State private var selectedChapterID: UUID?
+    @State private var selectedSessionID: UUID?
+    @State private var rows: [CourseContentImportRow] = []
+    @State private var isFileImporterPresented = false
+    @State private var isImporting = false
+    @State private var batchError: String?
+
+    private let fileStore = AcademicFileStore()
+
+    init(initialCourse: Course?, initialChapter: Chapter? = nil, initialSession: ClassSession? = nil) {
+        self.initialCourse = initialCourse
+        self.initialChapter = initialChapter
+        self.initialSession = initialSession
+        _selectedCourseID = State(initialValue: initialCourse?.id)
+        _selectedChapterID = State(initialValue: initialChapter?.id)
+        _selectedSessionID = State(initialValue: initialSession?.id)
+    }
+
+    private var selectedCourse: Course? {
+        courses.first { $0.id == selectedCourseID } ?? initialCourse
+    }
+
+    private var chapters: [Chapter] {
+        selectedCourse?.chapters.filter { !$0.isArchived }.sorted { $0.order < $1.order } ?? []
+    }
+
+    private var selectedChapter: Chapter? {
+        chapters.first { $0.id == selectedChapterID } ?? initialChapter
+    }
+
+    private var sessions: [ClassSession] {
+        let source = selectedCourse?.sessions.sorted { $0.startTime < $1.startTime } ?? []
+        guard let selectedChapterID else { return source }
+        return source.filter { $0.chapter?.id == selectedChapterID }
+    }
+
+    private var selectedSession: ClassSession? {
+        sessions.first { $0.id == selectedSessionID } ?? initialSession
+    }
+
+    private var importableRows: [CourseContentImportRow] {
+        rows.filter { $0.include && $0.status != .imported }
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                Form {
+                    Section("Destination") {
+                        Picker("Cours", selection: $selectedCourseID) {
+                            Text("Non classé").tag(UUID?.none)
+                            ForEach(courses.filter { !$0.isArchived }) { course in
+                                Text(course.name).tag(Optional(course.id))
+                            }
+                        }
+                        Picker("Chapitre", selection: $selectedChapterID) {
+                            Text("Sans chapitre").tag(UUID?.none)
+                            ForEach(chapters) { chapter in
+                                Text(chapter.title).tag(Optional(chapter.id))
+                            }
+                        }
+                        Picker("Séance", selection: $selectedSessionID) {
+                            Text("Aucune séance").tag(UUID?.none)
+                            ForEach(sessions) { session in
+                                Text(session.title).tag(Optional(session.id))
+                            }
+                        }
+                    }
+                    Section("Fichiers") {
+                        Button("Choisir des fichiers", systemImage: "square.and.arrow.down") {
+                            isFileImporterPresented = true
+                        }
+                        if rows.isEmpty {
+                            Text("PDF, images, documents et audio. Les fichiers seront prévisualisés avant import.")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            ForEach($rows) { $row in
+                                CourseContentImportPreviewRow(
+                                    row: $row,
+                                    destination: destinationLabel(for: row)
+                                )
+                            }
+                        }
+                    }
+                    if let batchError {
+                        Section {
+                            Text(batchError)
+                                .foregroundStyle(.red)
+                        }
+                    }
+                }
+                HStack {
+                    Text("\(importableRows.count) fichier(s) prêts")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Annuler") { dismiss() }
+                        .disabled(isImporting)
+                    Button("Importer") {
+                        Task { await importSelectedRows() }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(importableRows.isEmpty || isImporting)
+                }
+                .padding()
+                .background(.bar)
+            }
+            .navigationTitle("Importer du contenu")
+            .fileImporter(
+                isPresented: $isFileImporterPresented,
+                allowedContentTypes: [.pdf, .image, .audio, .movie, .text, .plainText, .data],
+                allowsMultipleSelection: true
+            ) { result in
+                handleSelection(result)
+            }
+        }
+        .frame(minWidth: 760, minHeight: 620)
+    }
+
+    private func handleSelection(_ result: Result<[URL], Error>) {
+        switch result {
+        case .success(let urls):
+            batchError = nil
+            rows = urls.map { url in
+                CourseContentImportRow(
+                    url: url,
+                    title: url.deletingPathExtension().lastPathComponent,
+                    kind: AcademicFileStore.resourceKind(for: url.pathExtension),
+                    fileSize: fileSize(for: url),
+                    isDuplicate: isDuplicate(url)
+                )
+            }
+        case .failure(let error):
+            batchError = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    private func importSelectedRows() async {
+        guard !isImporting else { return }
+        isImporting = true
+        batchError = nil
+        var importedCount = 0
+        for index in rows.indices where rows[index].include && rows[index].status != .imported {
+            let url = rows[index].url
+            let hasScopedAccess = url.startAccessingSecurityScopedResource()
+            defer {
+                if hasScopedAccess {
+                    url.stopAccessingSecurityScopedResource()
+                }
+            }
+            do {
+                let draft = ResourceImportDraft(
+                    fileURL: url,
+                    title: rows[index].title,
+                    resourceDescription: "",
+                    course: selectedCourse,
+                    chapter: selectedChapter,
+                    session: selectedSession,
+                    tags: []
+                )
+                _ = try ResourceImportService.submit(
+                    draft: draft,
+                    existingResources: resources,
+                    modelContext: modelContext,
+                    fileStore: fileStore,
+                    allowDuplicate: false
+                )
+                rows[index].status = .imported
+                rows[index].errorMessage = nil
+                importedCount += 1
+            } catch ResourceImportSubmitError.duplicate {
+                rows[index].status = .failed
+                rows[index].errorMessage = "Doublon détecté pour cette destination."
+            } catch {
+                rows[index].status = .failed
+                rows[index].errorMessage = error.localizedDescription
+            }
+        }
+        isImporting = false
+        if importedCount > 0 && rows.allSatisfy({ !$0.include || $0.status == .imported }) {
+            dismiss()
+        } else if importedCount > 0 {
+            batchError = "\(importedCount) fichier(s) importé(s). Certains fichiers demandent une correction."
+        }
+    }
+
+    private func destinationLabel(for row: CourseContentImportRow) -> String {
+        [
+            selectedCourse?.name ?? "Non classé",
+            selectedChapter?.title,
+            selectedSession?.title
+        ]
+        .compactMap { $0 }
+        .joined(separator: " · ")
+    }
+
+    private func fileSize(for url: URL) -> Int64 {
+        (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int64) ?? 0
+    }
+
+    private func isDuplicate(_ url: URL) -> Bool {
+        guard let hash = try? fileStore.fingerprint(for: url) else { return false }
+        return resources.contains { resource in
+            resource.contentHash == hash &&
+            resource.course?.id == selectedCourse?.id &&
+            resource.chapter?.id == selectedChapter?.id &&
+            resource.session?.id == selectedSession?.id
+        }
+    }
+}
+
+private struct CourseContentImportRow: Identifiable {
+    let id = UUID()
+    let url: URL
+    var title: String
+    let kind: AcademicResourceKind
+    let fileSize: Int64
+    let isDuplicate: Bool
+    var include = true
+    var status: CourseContentImportStatus = .pending
+    var errorMessage: String?
+}
+
+private enum CourseContentImportStatus {
+    case pending
+    case imported
+    case failed
+}
+
+private struct CourseContentImportPreviewRow: View {
+    @Binding var row: CourseContentImportRow
+    let destination: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 10) {
+                Toggle("", isOn: $row.include)
+                    .labelsHidden()
+                Image(systemName: row.kind.systemImage)
+                    .foregroundStyle(StudyDeskTheme.accentPrimary)
+                    .frame(width: 24)
+                VStack(alignment: .leading, spacing: 4) {
+                    TextField("Titre", text: $row.title)
+                        .textFieldStyle(.roundedBorder)
+                    Text("\(row.url.lastPathComponent) · \(row.kind.title) · \(ByteCountFormatter.string(fromByteCount: row.fileSize, countStyle: .file))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(destination)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    if row.isDuplicate {
+                        Text("Doublon possible pour cette destination.")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
+                    if let errorMessage = row.errorMessage {
+                        Text(errorMessage)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+                }
+                Spacer()
+                switch row.status {
+                case .pending:
+                    EmptyView()
+                case .imported:
+                    Label("Importé", systemImage: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                case .failed:
+                    Label("Échec", systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.red)
+                }
+            }
+        }
+        .padding(.vertical, 6)
     }
 }
 

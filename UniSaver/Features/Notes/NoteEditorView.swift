@@ -5,6 +5,7 @@ struct NoteEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(AppNavigationState.self) private var navigation
     @Bindable var note: StudyNote
     @Query(sort: \CourseRecording.updatedAt, order: .reverse) private var recordings: [CourseRecording]
     @State private var saveStatus = "Saved"
@@ -13,9 +14,19 @@ struct NoteEditorView: View {
     @State private var deleteConfirmation = false
     @State private var recorder = CourseAudioRecorder()
     @State private var recordingTitle = ""
+    @State private var editorMode: NoteEditorMode = .edit
+    @State private var lastSavedRecording: CourseRecording?
+    @State private var lastSavedTitle = ""
+    @State private var lastSavedBody = ""
+    @State private var pendingExit = NoteExitIntent.none
+    @State private var showUnsavedExitDialog = false
 
     private var linkedRecordings: [CourseRecording] {
         recordings.filter { $0.note?.id == note.id }
+    }
+
+    private var hasUnsavedTextChanges: Bool {
+        note.title != lastSavedTitle || note.body != lastSavedBody
     }
 
     var body: some View {
@@ -51,8 +62,17 @@ struct NoteEditorView: View {
                 saveNow()
             }
         }
+        .onAppear {
+            refreshSavedSnapshot()
+            navigation.noteNavigationGuard = { section in
+                requestSectionChange(section)
+            }
+        }
         .onDisappear {
-            saveNow()
+            if !hasUnsavedTextChanges {
+                saveNow()
+            }
+            navigation.noteNavigationGuard = nil
         }
         .task {
             while !Task.isCancelled {
@@ -68,12 +88,25 @@ struct NoteEditorView: View {
             }
             Button("Cancel", role: .cancel) {}
         }
+        .confirmationDialog("Leave this note?", isPresented: $showUnsavedExitDialog) {
+            Button("Save") {
+                completePendingExitAfterSave()
+            }
+            Button("Discard Changes", role: .destructive) {
+                completePendingExitAfterDiscard()
+            }
+            Button("Cancel", role: .cancel) {
+                pendingExit = .none
+            }
+        } message: {
+            Text("Save changes before leaving this note, discard them, or cancel to keep editing.")
+        }
     }
 
     private var noteHeader: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top, spacing: 12) {
-                Button("Back", systemImage: "chevron.left") { dismiss() }
+                Button("Back", systemImage: "chevron.left") { requestDismiss() }
                     .labelStyle(.iconOnly)
                     .frame(width: 44, height: 44)
                 VStack(alignment: .leading, spacing: 4) {
@@ -86,6 +119,13 @@ struct NoteEditorView: View {
                         .lineLimit(2)
                 }
                 Spacer()
+                Picker("Mode", selection: $editorMode) {
+                    ForEach(NoteEditorMode.allCases) { mode in
+                        Text(mode.title).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 170)
                 recordButton
             }
             HStack {
@@ -107,17 +147,17 @@ struct NoteEditorView: View {
     private var recordButton: some View {
         Group {
             switch recorder.state {
-            case .idle, .finished, .unavailable:
+            case .idle, .saved, .denied, .failed:
                 Button {
                     recordingTitle = "\(note.title.isEmpty ? "Note" : note.title) recording"
-                    recorder.requestPermissionAndStart()
+                    recorder.requestPermissionAndStart(title: recordingTitle)
                 } label: {
                     Label("Record", systemImage: "mic.fill")
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.regular)
                 .frame(minHeight: 44)
-            case .recording, .paused:
+            case .requestingPermission, .preparing, .recording, .paused, .stopping:
                 EmptyView()
             }
         }
@@ -126,12 +166,20 @@ struct NoteEditorView: View {
     @ViewBuilder
     private var recordingBar: some View {
         switch recorder.state {
+        case .requestingPermission:
+            recordingStatusBar(systemImage: "mic", title: "Requesting microphone access...", tint: .blue) {
+                ProgressView()
+            }
+        case .preparing:
+            recordingStatusBar(systemImage: "waveform", title: "Preparing recorder...", tint: .blue) {
+                ProgressView()
+            }
         case .recording, .paused:
             HStack(spacing: 12) {
                 Circle()
                     .fill(.red)
                     .frame(width: 10, height: 10)
-                Text(recorder.elapsed, format: .number.precision(.fractionLength(0)))
+                Text(formatDuration(recorder.elapsed))
                     .font(.callout.monospacedDigit().weight(.semibold))
                 ProgressView(value: min(max(Double(recorder.level + 60) / 60, 0), 1))
                     .tint(.red)
@@ -146,10 +194,33 @@ struct NoteEditorView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
             .background(.red.opacity(0.06))
-        case .unavailable(let message):
-            HStack {
-                Label(message, systemImage: "mic.slash")
+        case .stopping:
+            recordingStatusBar(systemImage: "stop.circle", title: "Saving recording...", tint: .orange) {
+                ProgressView()
+            }
+        case .saved(let saved):
+            HStack(spacing: 12) {
+                Label("Recording saved · \(formatDuration(saved.duration))", systemImage: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
                 Spacer()
+                Button("Done") { recorder.resetAfterSave() }
+            }
+            .font(.caption)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(.green.opacity(0.08))
+        case .denied(let message), .failed(let message):
+            HStack(spacing: 12) {
+                Label(message, systemImage: "mic.slash")
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer()
+                Button("Open Settings", action: openAppSettings)
+                    .buttonStyle(.bordered)
+                Button("Try Again") {
+                    recordingTitle = recordingTitle.isEmpty ? "\(note.title.isEmpty ? "Note" : note.title) recording" : recordingTitle
+                    recorder.requestPermissionAndStart(title: recordingTitle)
+                }
+                .buttonStyle(.bordered)
                 Button("Dismiss") { recorder.cancel() }
             }
             .font(.caption)
@@ -158,6 +229,18 @@ struct NoteEditorView: View {
         default:
             EmptyView()
         }
+    }
+
+    private func recordingStatusBar<Accessory: View>(systemImage: String, title: String, tint: Color, @ViewBuilder accessory: () -> Accessory) -> some View {
+        HStack(spacing: 12) {
+            Label(title, systemImage: systemImage)
+            Spacer()
+            accessory()
+        }
+        .font(.caption)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(tint.opacity(0.08))
     }
 
     private var formattingToolbar: some View {
@@ -199,19 +282,25 @@ struct NoteEditorView: View {
     private var editorBody: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                ZStack(alignment: .topLeading) {
-                    if note.body.isEmpty {
-                        Text("Start writing...")
-                            .foregroundStyle(.secondary)
-                            .padding(.top, 8)
-                            .padding(.leading, 4)
+                if editorMode == .edit {
+                    ZStack(alignment: .topLeading) {
+                        if note.body.isEmpty {
+                            Text("Start writing...")
+                                .foregroundStyle(.secondary)
+                                .padding(.top, 12)
+                                .padding(.leading, 8)
+                        }
+                        TextField("", text: $note.body, axis: .vertical)
+                            .font(.body)
+                            .lineSpacing(5)
+                            .textFieldStyle(.plain)
+                            .lineLimit(18...120)
+                            .padding(8)
+                            .accessibilityLabel("Note body")
                     }
-                    TextField("", text: $note.body, axis: .vertical)
-                        .font(.body)
-                        .lineSpacing(4)
-                        .textFieldStyle(.plain)
-                        .lineLimit(18...80)
-                        .accessibilityLabel("Note body")
+                } else {
+                    MarkdownPreviewView(markdown: note.body)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
                 if !linkedRecordings.isEmpty {
@@ -224,8 +313,8 @@ struct NoteEditorView: View {
                     }
                 }
             }
-            .padding(20)
-            .frame(maxWidth: 760, alignment: .leading)
+            .padding(24)
+            .frame(maxWidth: 860, alignment: .topLeading)
             .frame(maxWidth: .infinity)
         }
     }
@@ -243,19 +332,75 @@ struct NoteEditorView: View {
         autosaveTask = Task {
             try? await Task.sleep(for: .milliseconds(450))
             guard !Task.isCancelled else { return }
-            await MainActor.run { saveNow() }
+            _ = await MainActor.run { saveNow() }
         }
     }
 
-    private func saveNow() {
+    @discardableResult
+    private func saveNow() -> Bool {
         note.updatedAt = .now
         do {
             try modelContext.save()
             saveStatus = "Saved"
             saveError = nil
+            refreshSavedSnapshot()
+            return true
         } catch {
             saveStatus = "Save failed"
             saveError = error.localizedDescription
+            return false
+        }
+    }
+
+    private func refreshSavedSnapshot() {
+        lastSavedTitle = note.title
+        lastSavedBody = note.body
+    }
+
+    private func requestDismiss() {
+        if hasUnsavedTextChanges {
+            pendingExit = .dismiss
+            showUnsavedExitDialog = true
+        } else {
+            saveNow()
+            dismiss()
+        }
+    }
+
+    private func requestSectionChange(_ section: AppSection) -> Bool {
+        if hasUnsavedTextChanges {
+            pendingExit = .section(section)
+            showUnsavedExitDialog = true
+            return false
+        }
+        saveNow()
+        return true
+    }
+
+    private func completePendingExitAfterSave() {
+        guard saveNow() else { return }
+        completePendingExit()
+    }
+
+    private func completePendingExitAfterDiscard() {
+        note.title = lastSavedTitle
+        note.body = lastSavedBody
+        note.updatedAt = .now
+        _ = saveNow()
+        completePendingExit()
+    }
+
+    private func completePendingExit() {
+        let exit = pendingExit
+        pendingExit = .none
+        navigation.noteNavigationGuard = nil
+        switch exit {
+        case .none:
+            break
+        case .dismiss:
+            dismiss()
+        case .section(let section):
+            navigation.select(section)
         }
     }
 
@@ -277,23 +422,127 @@ struct NoteEditorView: View {
 
     private func stopRecordingIntoNote() {
         recorder.stop()
-        guard case .finished(let tempURL, let duration) = recorder.state else { return }
+        guard case .saved(let saved) = recorder.state else { return }
         do {
-            let stored = try AcademicFileStore().importFile(from: tempURL)
-            let recording = CourseRecording(
+            let recording = try RecordingPersistenceService.createRecording(
                 title: recordingTitle,
-                storedRelativePath: stored.storedRelativePath,
-                duration: duration,
+                savedRecording: saved,
                 course: note.course,
                 chapter: note.chapter,
                 session: note.session,
-                note: note
+                note: note,
+                in: modelContext
             )
-            modelContext.insert(recording)
-            try modelContext.save()
+            lastSavedRecording = recording
         } catch {
             saveStatus = "Recording save failed"
             saveError = error.localizedDescription
+        }
+    }
+
+    private func formatDuration(_ duration: TimeInterval) -> String {
+        let total = max(0, Int(duration.rounded()))
+        return String(format: "%02d:%02d", total / 60, total % 60)
+    }
+
+    private func openAppSettings() {
+        #if os(iOS)
+        if let url = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(url)
+        }
+        #elseif os(macOS)
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") {
+            NSWorkspace.shared.open(url)
+        }
+        #endif
+    }
+}
+
+private enum NoteEditorMode: String, CaseIterable, Identifiable {
+    case edit
+    case preview
+
+    var id: String { rawValue }
+    var title: String { rawValue.capitalized }
+}
+
+private enum NoteExitIntent: Equatable {
+    case none
+    case dismiss
+    case section(AppSection)
+}
+
+private struct MarkdownPreviewView: View {
+    let markdown: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if markdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text("Nothing to preview yet.")
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(Array(markdown.components(separatedBy: .newlines).enumerated()), id: \.offset) { _, line in
+                    rendered(line)
+                }
+            }
+        }
+        .padding(4)
+    }
+
+    @ViewBuilder
+    private func rendered(_ rawLine: String) -> some View {
+        let line = rawLine.trimmingCharacters(in: .whitespaces)
+        if line.hasPrefix("# ") {
+            Text(String(line.dropFirst(2))).font(.largeTitle.bold())
+        } else if line.hasPrefix("## ") {
+            Text(String(line.dropFirst(3))).font(.title2.bold())
+        } else if line.hasPrefix("### ") {
+            Text(String(line.dropFirst(4))).font(.title3.weight(.semibold))
+        } else if line.hasPrefix("- [ ] ") {
+            Label(String(line.dropFirst(6)), systemImage: "square")
+        } else if line.hasPrefix("- [x] ") || line.hasPrefix("- [X] ") {
+            Label(String(line.dropFirst(6)), systemImage: "checkmark.square.fill")
+        } else if line.hasPrefix("- ") {
+            HStack(alignment: .top) {
+                Text("•")
+                Text(inline(line.dropFirst(2)))
+            }
+        } else if line.hasPrefix("1. ") {
+            HStack(alignment: .top) {
+                Text("1.")
+                Text(inline(line.dropFirst(3)))
+            }
+        } else if line.hasPrefix("> ") {
+            Text(inline(line.dropFirst(2)))
+                .padding(.leading, 10)
+                .overlay(alignment: .leading) {
+                    Rectangle().fill(StudyDeskTheme.accentPrimary.opacity(0.45)).frame(width: 3)
+                }
+                .foregroundStyle(.secondary)
+        } else if line == "---" {
+            Divider()
+        } else {
+            Text(inline(line))
+        }
+    }
+
+    private func inline<S: StringProtocol>(_ value: S) -> AttributedString {
+        var attributed = AttributedString(String(value))
+        let raw = String(value)
+        applyMarkdown(marker: "**", raw: raw, to: &attributed, intent: .stronglyEmphasized)
+        applyMarkdown(marker: "*", raw: raw, to: &attributed, intent: .emphasized)
+        return attributed
+    }
+
+    private func applyMarkdown(marker: String, raw: String, to attributed: inout AttributedString, intent: InlinePresentationIntent) {
+        var searchStart = raw.startIndex
+        while let first = raw[searchStart...].range(of: marker),
+              let second = raw[first.upperBound...].range(of: marker) {
+            let textRange = first.upperBound..<second.lowerBound
+            if let range = Range(textRange, in: attributed) {
+                attributed[range].inlinePresentationIntent = intent
+            }
+            searchStart = second.upperBound
         }
     }
 }

@@ -35,10 +35,16 @@ struct ResourceImportValidation: Equatable {
         if draft.trimmedTitle.isEmpty {
             validation.titleError = "Enter a title."
         }
-        guard let course = draft.course else {
-            validation.courseError = "Choose a course."
+        if draft.course == nil {
+            if draft.chapter != nil {
+                validation.chapterError = "Choose a course before selecting a chapter."
+            }
+            if draft.session != nil {
+                validation.sessionError = "Choose a course before selecting a session."
+            }
             return validation
         }
+        guard let course = draft.course else { return validation }
         if let chapter = draft.chapter, chapter.course?.id != course.id {
             validation.chapterError = "The selected chapter does not belong to this course."
         }
@@ -79,7 +85,7 @@ enum ResourceImportService {
         allowDuplicate: Bool = false
     ) throws -> AcademicResource {
         let validation = ResourceImportValidation.validate(draft)
-        guard validation.isValid, let fileURL = draft.fileURL, let course = draft.course else {
+        guard validation.isValid, let fileURL = draft.fileURL else {
             throw ResourceImportSubmitError.invalid(validation)
         }
 
@@ -105,7 +111,7 @@ enum ResourceImportService {
                 contentHash: stored.contentHash,
                 pageCount: pageCount,
                 tags: draft.tags,
-                course: course,
+                course: draft.course,
                 chapter: draft.chapter,
                 session: draft.session
             )
