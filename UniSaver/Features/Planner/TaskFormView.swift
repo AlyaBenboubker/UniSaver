@@ -17,11 +17,11 @@ struct TaskFormView: View {
     @State private var selectedChapterID: UUID?
     @State private var errorMessage: String?
 
-    init(task: AcademicTask? = nil, initialCourse: Course? = nil, initialChapter: Chapter? = nil, initialSession: ClassSession? = nil) {
+    init(task: AcademicTask? = nil, initialCourse: Course? = nil, initialChapter: Chapter? = nil, initialSession: ClassSession? = nil, initialDueDate: Date? = nil) {
         self.task = task
         _title = State(initialValue: task?.title ?? "")
         _taskDescription = State(initialValue: task?.taskDescription ?? "")
-        _dueDate = State(initialValue: task?.dueDate ?? Calendar.current.date(byAdding: .day, value: 1, to: .now) ?? .now)
+        _dueDate = State(initialValue: task?.dueDate ?? initialDueDate ?? Calendar.current.date(byAdding: .day, value: 1, to: .now) ?? .now)
         _priority = State(initialValue: task?.priority ?? .medium)
         _status = State(initialValue: task?.status ?? .todo)
         _estimatedMinutes = State(initialValue: (task?.estimatedDuration ?? 3600) / 60)
@@ -42,55 +42,67 @@ struct TaskFormView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("Task") {
-                    TextField("Title", text: $title)
+        CreationWindow(
+            icon: "checklist",
+            title: task == nil ? "Nouvelle tâche" : "Modifier la tâche",
+            subtitle: "Ajoute une échéance claire et rattache-la à la bonne matière.",
+            accent: CourseColor.amber.color,
+            closeAction: { dismiss() }
+        ) {
+            CreationCard("Tâche") {
+                VStack(alignment: .leading, spacing: 12) {
+                    TextField("Titre", text: $title)
+                        .textFieldStyle(.roundedBorder)
                     TextField("Description", text: $taskDescription, axis: .vertical)
-                    DatePicker("Due", selection: $dueDate)
-                    Picker("Priority", selection: $priority) {
+                        .textFieldStyle(.roundedBorder)
+                    DatePicker("Échéance", selection: $dueDate)
+                    Picker("Priorité", selection: $priority) {
                         ForEach(AcademicTaskPriority.allCases) { priority in
                             Text(priority.title).tag(priority)
                         }
                     }
-                    Picker("Status", selection: $status) {
+                    Picker("État", selection: $status) {
                         ForEach(AcademicTaskStatus.allCases) { status in
                             Text(status.title).tag(status)
                         }
                     }
-                    Stepper("Estimated \(Int(estimatedMinutes)) min", value: $estimatedMinutes, in: 15...480, step: 15)
+                    Stepper("Estimation \(Int(estimatedMinutes)) min", value: $estimatedMinutes, in: 15...480, step: 15)
                 }
+            }
 
-                Section("Context") {
-                    Picker("Course", selection: $selectedCourseID) {
-                        Text("General").tag(UUID?.none)
+            CreationCard("Contexte") {
+                VStack(alignment: .leading, spacing: 12) {
+                    Picker("Matière", selection: $selectedCourseID) {
+                        Text("Général").tag(UUID?.none)
                         ForEach(courses.filter { !$0.isArchived }) { course in
                             Text(course.name).tag(Optional(course.id))
                         }
                     }
-                    Picker("Chapter", selection: $selectedChapterID) {
-                        Text("No chapter").tag(UUID?.none)
+                    Picker("Chapitre", selection: $selectedChapterID) {
+                        Text("Sans chapitre").tag(UUID?.none)
                         ForEach(availableChapters) { chapter in
                             Text(chapter.title).tag(Optional(chapter.id))
                         }
                     }
                 }
-
-                if let errorMessage {
-                    Text(errorMessage).foregroundStyle(.red)
-                }
             }
-            .navigationTitle(task == nil ? "New Task" : "Edit Task")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+            if let errorMessage {
+                CreationErrorText(message: errorMessage)
+            }
+        } footer: {
+            HStack {
+                Button("Annuler") { dismiss() }
+                    .buttonStyle(.bordered)
+                if title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text("Titre requis.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { save() }
-                        .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
+                Spacer()
+                CreationPrimaryButton(title: "Enregistrer", systemImage: "checkmark.circle.fill", accent: CourseColor.amber.color, isDisabled: title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, action: save)
             }
         }
+        .frame(minWidth: 560, idealWidth: 660, minHeight: 520, idealHeight: 620)
     }
 
     private func save() {
