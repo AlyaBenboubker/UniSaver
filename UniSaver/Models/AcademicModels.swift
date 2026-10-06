@@ -206,6 +206,160 @@ enum AcademicResourceKind: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+extension AcademicResource {
+    var effectiveResourceKind: AcademicResourceKind {
+        let candidates = [fileExtension, URL(fileURLWithPath: originalFileName).pathExtension, URL(fileURLWithPath: storedRelativePath).pathExtension]
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).localizedLowercase }
+            .filter { !$0.isEmpty }
+        guard let extensionValue = candidates.first else {
+            return resourceKind
+        }
+        return AcademicFileStore.resourceKind(for: extensionValue)
+    }
+
+    var effectiveResourceKindTitle: String {
+        if effectiveResourceKind == .document {
+            let ext = fileExtension.isEmpty ? URL(fileURLWithPath: originalFileName).pathExtension : fileExtension
+            return ext.isEmpty ? effectiveResourceKind.title : ext.localizedUppercase
+        }
+        return effectiveResourceKind.title
+    }
+
+    var effectiveResourceSystemImage: String {
+        effectiveResourceKind.systemImage
+    }
+}
+
+enum FlashcardRating: String, Codable, CaseIterable, Identifiable {
+    case again
+    case hard
+    case good
+    case easy
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .again: "Again"
+        case .hard: "Hard"
+        case .good: "Good"
+        case .easy: "Easy"
+        }
+    }
+}
+
+struct FlashcardReviewState: Codable, Equatable {
+    var dueDate: Date
+    var interval: TimeInterval
+    var ease: Double
+    var repetitions: Int
+    var lapses: Int
+    var lastReviewedAt: Date?
+    var lastRating: FlashcardRating?
+
+    init(
+        dueDate: Date = .now,
+        interval: TimeInterval = 0,
+        ease: Double = 2.3,
+        repetitions: Int = 0,
+        lapses: Int = 0,
+        lastReviewedAt: Date? = nil,
+        lastRating: FlashcardRating? = nil
+    ) {
+        self.dueDate = dueDate
+        self.interval = interval
+        self.ease = ease
+        self.repetitions = repetitions
+        self.lapses = lapses
+        self.lastReviewedAt = lastReviewedAt
+        self.lastRating = lastRating
+    }
+}
+
+enum QuizMode: String, Codable, CaseIterable, Identifiable {
+    case practice
+    case exam
+
+    var id: String { rawValue }
+    var title: String { rawValue.capitalized }
+}
+
+enum QuizQuestionType: String, Codable, CaseIterable, Identifiable {
+    case multipleChoice
+    case multipleSelect
+    case trueFalse
+    case shortAnswer
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .multipleChoice: "Multiple choice"
+        case .multipleSelect: "Multiple select"
+        case .trueFalse: "True/false"
+        case .shortAnswer: "Short answer"
+        }
+    }
+}
+
+enum UnderstandingHelpLevel: String, Codable, CaseIterable, Identifiable, Comparable {
+    case none
+    case hint
+    case steps
+    case solution
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .none: "No help"
+        case .hint: "Hint"
+        case .steps: "Steps"
+        case .solution: "Solution"
+        }
+    }
+
+    var rank: Int {
+        switch self {
+        case .none: 0
+        case .hint: 1
+        case .steps: 2
+        case .solution: 3
+        }
+    }
+
+    static func < (lhs: UnderstandingHelpLevel, rhs: UnderstandingHelpLevel) -> Bool {
+        lhs.rank < rhs.rank
+    }
+}
+
+enum AutonomousCheckResult: String, Codable, CaseIterable, Identifiable {
+    case notChecked
+    case couldNotRedo
+    case partial
+    case independent
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .notChecked: "Not checked"
+        case .couldNotRedo: "Could not redo"
+        case .partial: "Partial"
+        case .independent: "Independent"
+        }
+    }
+
+    var progressValue: Double {
+        switch self {
+        case .notChecked: 0
+        case .couldNotRedo: 0
+        case .partial: 0.55
+        case .independent: 1
+        }
+    }
+}
+
 @Model
 final class AcademicYear {
     @Attribute(.unique) var id: UUID
@@ -413,7 +567,19 @@ final class ClassSession {
     var room: String?
     var professorName: String?
     var attendanceStatus: AttendanceStatus
-    var sessionType: ClassSessionType
+    var sessionTypeRawValue: String?
+    @Transient var sessionType: ClassSessionType {
+        get {
+            guard let sessionTypeRawValue,
+                  let value = ClassSessionType(rawValue: sessionTypeRawValue) else {
+                return .lecture
+            }
+            return value
+        }
+        set {
+            sessionTypeRawValue = newValue.rawValue
+        }
+    }
     var learningObjectives: [String]
     var importantConcepts: [String]
     var reviewTasks: [String]
@@ -455,7 +621,7 @@ final class ClassSession {
         self.room = room
         self.professorName = professorName
         self.attendanceStatus = attendanceStatus
-        self.sessionType = sessionType
+        self.sessionTypeRawValue = sessionType.rawValue
         self.learningObjectives = learningObjectives
         self.importantConcepts = importantConcepts
         self.reviewTasks = reviewTasks
@@ -820,5 +986,1137 @@ final class AppWorkspace {
         self.lastStudyActivity = lastStudyActivity
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+    }
+}
+
+@Model
+final class StudyDeck {
+    @Attribute(.unique) var id: UUID
+    var title: String
+    var deckDescription: String
+    var colorIdentifier: String
+    var symbolName: String
+    var createdAt: Date
+    var updatedAt: Date
+    var isArchived: Bool
+
+    var course: Course?
+    var chapter: Chapter?
+    var session: ClassSession?
+
+    @Relationship(deleteRule: .cascade, inverse: \Flashcard.deck)
+    var cards: [Flashcard]
+
+    init(
+        id: UUID = UUID(),
+        title: String,
+        deckDescription: String = "",
+        colorIdentifier: String = "blueViolet",
+        symbolName: String = "rectangle.stack.fill",
+        createdAt: Date = .now,
+        updatedAt: Date = .now,
+        isArchived: Bool = false,
+        course: Course? = nil,
+        chapter: Chapter? = nil,
+        session: ClassSession? = nil,
+        cards: [Flashcard] = []
+    ) {
+        self.id = id
+        self.title = title
+        self.deckDescription = deckDescription
+        self.colorIdentifier = colorIdentifier
+        self.symbolName = symbolName
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.isArchived = isArchived
+        self.course = course
+        self.chapter = chapter
+        self.session = session
+        self.cards = cards
+    }
+}
+
+@Model
+final class Flashcard {
+    @Attribute(.unique) var id: UUID
+    var front: String
+    var back: String
+    var hint: String?
+    var explanation: String?
+    var tags: [String]
+    var position: Int
+    var createdAt: Date
+    var updatedAt: Date
+    var reviewState: FlashcardReviewState
+
+    var deck: StudyDeck?
+
+    init(
+        id: UUID = UUID(),
+        front: String,
+        back: String,
+        hint: String? = nil,
+        explanation: String? = nil,
+        tags: [String] = [],
+        position: Int = 0,
+        createdAt: Date = .now,
+        updatedAt: Date = .now,
+        reviewState: FlashcardReviewState = FlashcardReviewState(),
+        deck: StudyDeck? = nil
+    ) {
+        self.id = id
+        self.front = front
+        self.back = back
+        self.hint = hint
+        self.explanation = explanation
+        self.tags = tags
+        self.position = position
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.reviewState = reviewState
+        self.deck = deck
+    }
+}
+
+@Model
+final class FlashcardReviewEvent {
+    @Attribute(.unique) var id: UUID
+    var reviewedAt: Date
+    var rating: FlashcardRating
+    var previousDueDate: Date
+    var nextDueDate: Date
+    var responseDuration: TimeInterval
+
+    var card: Flashcard?
+
+    init(
+        id: UUID = UUID(),
+        reviewedAt: Date = .now,
+        rating: FlashcardRating,
+        previousDueDate: Date,
+        nextDueDate: Date,
+        responseDuration: TimeInterval = 0,
+        card: Flashcard? = nil
+    ) {
+        self.id = id
+        self.reviewedAt = reviewedAt
+        self.rating = rating
+        self.previousDueDate = previousDueDate
+        self.nextDueDate = nextDueDate
+        self.responseDuration = responseDuration
+        self.card = card
+    }
+}
+
+@Model
+final class Quiz {
+    @Attribute(.unique) var id: UUID
+    var title: String
+    var quizDescription: String
+    var mode: QuizMode
+    var createdAt: Date
+    var updatedAt: Date
+    var isArchived: Bool
+
+    var course: Course?
+    var chapter: Chapter?
+    var session: ClassSession?
+
+    @Relationship(deleteRule: .cascade, inverse: \QuizQuestion.quiz)
+    var questions: [QuizQuestion]
+
+    @Relationship(deleteRule: .cascade, inverse: \QuizAttempt.quiz)
+    var attempts: [QuizAttempt]
+
+    init(
+        id: UUID = UUID(),
+        title: String,
+        quizDescription: String = "",
+        mode: QuizMode = .practice,
+        createdAt: Date = .now,
+        updatedAt: Date = .now,
+        isArchived: Bool = false,
+        course: Course? = nil,
+        chapter: Chapter? = nil,
+        session: ClassSession? = nil,
+        questions: [QuizQuestion] = [],
+        attempts: [QuizAttempt] = []
+    ) {
+        self.id = id
+        self.title = title
+        self.quizDescription = quizDescription
+        self.mode = mode
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.isArchived = isArchived
+        self.course = course
+        self.chapter = chapter
+        self.session = session
+        self.questions = questions
+        self.attempts = attempts
+    }
+}
+
+@Model
+final class QuizQuestion {
+    @Attribute(.unique) var id: UUID
+    var prompt: String
+    var type: QuizQuestionType
+    var choices: [String]
+    var correctAnswers: [String]
+    var explanation: String
+    var hint: String?
+    var points: Int
+    var position: Int
+    var tags: [String]
+
+    var quiz: Quiz?
+
+    init(
+        id: UUID = UUID(),
+        prompt: String,
+        type: QuizQuestionType = .multipleChoice,
+        choices: [String] = [],
+        correctAnswers: [String] = [],
+        explanation: String = "",
+        hint: String? = nil,
+        points: Int = 1,
+        position: Int = 0,
+        tags: [String] = [],
+        quiz: Quiz? = nil
+    ) {
+        self.id = id
+        self.prompt = prompt
+        self.type = type
+        self.choices = choices
+        self.correctAnswers = correctAnswers
+        self.explanation = explanation
+        self.hint = hint
+        self.points = max(points, 1)
+        self.position = position
+        self.tags = tags
+        self.quiz = quiz
+    }
+}
+
+@Model
+final class QuizAttempt {
+    @Attribute(.unique) var id: UUID
+    var startedAt: Date
+    var completedAt: Date?
+    var score: Double
+    var maximumScore: Double
+    var answers: [String]
+    var duration: TimeInterval
+    var isCompleted: Bool
+
+    var quiz: Quiz?
+
+    init(
+        id: UUID = UUID(),
+        startedAt: Date = .now,
+        completedAt: Date? = nil,
+        score: Double = 0,
+        maximumScore: Double = 0,
+        answers: [String] = [],
+        duration: TimeInterval = 0,
+        isCompleted: Bool = false,
+        quiz: Quiz? = nil
+    ) {
+        self.id = id
+        self.startedAt = startedAt
+        self.completedAt = completedAt
+        self.score = score
+        self.maximumScore = maximumScore
+        self.answers = answers
+        self.duration = duration
+        self.isCompleted = isCompleted
+        self.quiz = quiz
+    }
+}
+
+@Model
+final class UnderstandingPracticeAttempt {
+    @Attribute(.unique) var id: UUID
+    var exercisePrompt: String
+    var subject: String
+    var studentAttempt: String
+    var hint: String
+    var explanationSteps: [String]
+    var solution: String
+    var transferQuestion: String
+    var transferAnswer: String
+    var suggestedTransferAnswer: String
+    var helpLevelUsed: UnderstandingHelpLevel
+    var autonomousResult: AutonomousCheckResult
+    var assistanceSource: String
+    var createdAt: Date
+    var updatedAt: Date
+
+    var course: Course?
+
+    init(
+        id: UUID = UUID(),
+        exercisePrompt: String,
+        subject: String,
+        studentAttempt: String = "",
+        hint: String = "",
+        explanationSteps: [String] = [],
+        solution: String = "",
+        transferQuestion: String = "",
+        transferAnswer: String = "",
+        suggestedTransferAnswer: String = "",
+        helpLevelUsed: UnderstandingHelpLevel = .none,
+        autonomousResult: AutonomousCheckResult = .notChecked,
+        assistanceSource: String = "demo",
+        createdAt: Date = .now,
+        updatedAt: Date = .now,
+        course: Course? = nil
+    ) {
+        self.id = id
+        self.exercisePrompt = exercisePrompt
+        self.subject = subject
+        self.studentAttempt = studentAttempt
+        self.hint = hint
+        self.explanationSteps = explanationSteps
+        self.solution = solution
+        self.transferQuestion = transferQuestion
+        self.transferAnswer = transferAnswer
+        self.suggestedTransferAnswer = suggestedTransferAnswer
+        self.helpLevelUsed = helpLevelUsed
+        self.autonomousResult = autonomousResult
+        self.assistanceSource = assistanceSource
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.course = course
+    }
+}
+
+enum LibraryItemKind: String, Codable, CaseIterable, Identifiable {
+    case note
+    case resource
+    case recording
+    case quiz
+    case studyDeck
+    case flashcard
+    case understandingPractice
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .note: "Notes"
+        case .resource: "Resources"
+        case .recording: "Recordings"
+        case .quiz: "Quizzes"
+        case .studyDeck: "Decks"
+        case .flashcard: "Flashcards"
+        case .understandingPractice: "Exercises"
+        }
+    }
+
+    var singularTitle: String {
+        switch self {
+        case .note: "Note"
+        case .resource: "Resource"
+        case .recording: "Recording"
+        case .quiz: "Quiz"
+        case .studyDeck: "Deck"
+        case .flashcard: "Flashcard"
+        case .understandingPractice: "Exercise"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .note: "note.text"
+        case .resource: "doc.richtext"
+        case .recording: "waveform"
+        case .quiz: "questionmark.app"
+        case .studyDeck: "rectangle.stack"
+        case .flashcard: "rectangle.stack.fill"
+        case .understandingPractice: "brain.head.profile"
+        }
+    }
+}
+
+enum RecordingTranscriptionStatus: String, Codable, CaseIterable, Identifiable {
+    case notStarted
+    case ready
+    case recording
+    case transcribing
+    case completed
+    case failed
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .notStarted: "Not started"
+        case .ready: "Ready"
+        case .recording: "Recording"
+        case .transcribing: "Transcribing"
+        case .completed: "Completed"
+        case .failed: "Failed"
+        }
+    }
+}
+
+enum CourseRecordingSource: String, Codable, CaseIterable, Identifiable {
+    case recorded
+    case imported
+    case demo
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .recorded: "Recorded in UniSaver"
+        case .imported: "Imported audio"
+        case .demo: "Demo"
+        }
+    }
+}
+
+@Model
+final class LibraryFolder {
+    @Attribute(.unique) var id: UUID
+    var name: String
+    var createdAt: Date
+    var updatedAt: Date
+
+    @Relationship(deleteRule: .nullify, inverse: \LibraryItem.folder)
+    var items: [LibraryItem]
+
+    init(
+        id: UUID = UUID(),
+        name: String,
+        createdAt: Date = .now,
+        updatedAt: Date = .now,
+        items: [LibraryItem] = []
+    ) {
+        self.id = id
+        self.name = name
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.items = items
+    }
+}
+
+@Model
+final class LibraryItem {
+    @Attribute(.unique) var id: UUID
+    var itemKindRawValue: String
+    var itemID: String
+    var createdAt: Date
+    var updatedAt: Date
+    var folder: LibraryFolder?
+
+    init(
+        id: UUID = UUID(),
+        itemKind: LibraryItemKind,
+        itemID: String,
+        createdAt: Date = .now,
+        updatedAt: Date = .now,
+        folder: LibraryFolder? = nil
+    ) {
+        self.id = id
+        self.itemKindRawValue = itemKind.rawValue
+        self.itemID = itemID
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.folder = folder
+    }
+
+    var itemKind: LibraryItemKind {
+        LibraryItemKind(rawValue: itemKindRawValue) ?? .resource
+    }
+}
+
+enum ExternalCalendarProvider: String, Codable, CaseIterable, Identifiable {
+    case appleCalendar
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .appleCalendar: "Apple Calendar"
+        }
+    }
+}
+
+@Model
+final class ExternalCalendarEventLink {
+    @Attribute(.unique) var id: UUID
+    var providerRawValue: String
+    var externalEventIdentifier: String
+    var externalStableIdentifier: String?
+    var externalCalendarIdentifier: String
+    var occurrenceStartDate: Date
+    var titleSnapshot: String
+    var calendarTitleSnapshot: String
+    var sourceURLString: String?
+    var createdAt: Date
+    var updatedAt: Date
+
+    var course: Course?
+    var chapter: Chapter?
+    var session: ClassSession?
+
+    init(
+        id: UUID = UUID(),
+        provider: ExternalCalendarProvider = .appleCalendar,
+        externalEventIdentifier: String,
+        externalStableIdentifier: String? = nil,
+        externalCalendarIdentifier: String,
+        occurrenceStartDate: Date,
+        titleSnapshot: String,
+        calendarTitleSnapshot: String,
+        sourceURLString: String? = nil,
+        createdAt: Date = .now,
+        updatedAt: Date = .now,
+        course: Course? = nil,
+        chapter: Chapter? = nil,
+        session: ClassSession? = nil
+    ) {
+        self.id = id
+        self.providerRawValue = provider.rawValue
+        self.externalEventIdentifier = externalEventIdentifier
+        self.externalStableIdentifier = externalStableIdentifier
+        self.externalCalendarIdentifier = externalCalendarIdentifier
+        self.occurrenceStartDate = occurrenceStartDate
+        self.titleSnapshot = titleSnapshot
+        self.calendarTitleSnapshot = calendarTitleSnapshot
+        self.sourceURLString = sourceURLString
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.course = course
+        self.chapter = chapter
+        self.session = session
+    }
+
+    var provider: ExternalCalendarProvider {
+        ExternalCalendarProvider(rawValue: providerRawValue) ?? .appleCalendar
+    }
+}
+
+enum ExternalLearningPlatform: String, Codable, CaseIterable, Identifiable {
+    case moodle
+    case quizlet
+    case other
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .moodle: "Moodle / eCampus"
+        case .quizlet: "Quizlet"
+        case .other: "Other"
+        }
+    }
+}
+
+enum ExternalLearningActivityType: String, Codable, CaseIterable, Identifiable {
+    case exercise
+    case quiz
+    case flashcards
+    case other
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .exercise: "Exercise"
+        case .quiz: "Quiz"
+        case .flashcards: "Flashcards"
+        case .other: "Other"
+        }
+    }
+}
+
+enum ExternalLearningActivityStatus: String, Codable, CaseIterable, Identifiable {
+    case todo
+    case inProgress
+    case completed
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .todo: "To do"
+        case .inProgress: "In progress"
+        case .completed: "Completed"
+        }
+    }
+}
+
+enum MathExerciseSourceKind: String, Codable, CaseIterable, Identifiable {
+    case pdf
+    case image
+    case photo
+    case screenshot
+    case moodle
+    case other
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .pdf: "PDF"
+        case .image: "Image"
+        case .photo: "Photo"
+        case .screenshot: "Screenshot"
+        case .moodle: "Moodle"
+        case .other: "Other"
+        }
+    }
+}
+
+enum MathExerciseRecognitionStatus: String, Codable, CaseIterable, Identifiable {
+    case notStarted
+    case extracted
+    case needsReview
+    case failed
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .notStarted: "Not started"
+        case .extracted: "Text extracted"
+        case .needsReview: "Needs verification"
+        case .failed: "Recognition failed"
+        }
+    }
+}
+
+enum MathExerciseWorkMode: String, Codable, CaseIterable, Identifiable {
+    case exam
+    case autonomy
+    case coach
+    case guided
+    case freeCorrection
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .exam: "Examen"
+        case .autonomy: "Autonomie"
+        case .coach: "Coach"
+        case .guided: "Guidé"
+        case .freeCorrection: "Correction libre"
+        }
+    }
+
+    var explanation: String {
+        switch self {
+        case .exam:
+            "Aucun indice ni correction avant la remise."
+        case .autonomy:
+            "Tu travailles seule ; UniSaver peut proposer un indice après une longue pause."
+        case .coach:
+            "Tu peux demander une vérification, un indice ou l’explication d’une erreur sur une étape."
+        case .guided:
+            "UniSaver pose une question à la fois et attend ta tentative."
+        case .freeCorrection:
+            "Aucune intervention pendant la résolution ; tu demandes la correction quand tu es prête."
+        }
+    }
+}
+
+enum MathExerciseAttemptStatus: String, Codable, CaseIterable, Identifiable {
+    case inProgress
+    case submitted
+    case reviewed
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .inProgress: "In progress"
+        case .submitted: "Submitted"
+        case .reviewed: "Reviewed"
+        }
+    }
+}
+
+enum EssayAssignmentKind: String, Codable, CaseIterable, Identifiable {
+    case openQuestion
+    case essay
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .openQuestion: "Question ouverte"
+        case .essay: "Essai"
+        }
+    }
+}
+
+enum EssayWorkMode: String, Codable, CaseIterable, Identifiable {
+    case training
+    case examSimulation
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .training: "Entraînement"
+        case .examSimulation: "Simulation d’examen"
+        }
+    }
+}
+
+enum EssayAssignmentStatus: String, Codable, CaseIterable, Identifiable {
+    case draft
+    case submitted
+    case feedbackAvailable
+    case revised
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .draft: "Brouillon"
+        case .submitted: "Remis"
+        case .feedbackAvailable: "Retour disponible"
+        case .revised: "Révisé"
+        }
+    }
+}
+
+enum EssayFeedbackStatus: String, Codable, CaseIterable, Identifiable {
+    case notRequested
+    case unavailable
+    case available
+    case failed
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .notRequested: "Not requested"
+        case .unavailable: "AI unavailable"
+        case .available: "Available"
+        case .failed: "Failed"
+        }
+    }
+}
+
+@Model
+final class ExternalLearningActivity {
+    @Attribute(.unique) var id: UUID
+    var title: String
+    var originalURLString: String
+    var platformRawValue: String
+    var activityTypeRawValue: String
+    var statusRawValue: String
+    var addedAt: Date
+    var updatedAt: Date
+    var lastOpenedAt: Date?
+    var observedScore: String
+    var personalNote: String
+    var difficultConcepts: [String]
+
+    var course: Course?
+    var chapter: Chapter?
+
+    init(
+        id: UUID = UUID(),
+        title: String,
+        originalURLString: String,
+        platform: ExternalLearningPlatform,
+        activityType: ExternalLearningActivityType,
+        status: ExternalLearningActivityStatus = .todo,
+        addedAt: Date = .now,
+        updatedAt: Date = .now,
+        lastOpenedAt: Date? = nil,
+        observedScore: String = "",
+        personalNote: String = "",
+        difficultConcepts: [String] = [],
+        course: Course? = nil,
+        chapter: Chapter? = nil
+    ) {
+        self.id = id
+        self.title = title
+        self.originalURLString = originalURLString
+        self.platformRawValue = platform.rawValue
+        self.activityTypeRawValue = activityType.rawValue
+        self.statusRawValue = status.rawValue
+        self.addedAt = addedAt
+        self.updatedAt = updatedAt
+        self.lastOpenedAt = lastOpenedAt
+        self.observedScore = observedScore
+        self.personalNote = personalNote
+        self.difficultConcepts = difficultConcepts
+        self.course = course
+        self.chapter = chapter
+    }
+
+    var platform: ExternalLearningPlatform {
+        get { ExternalLearningPlatform(rawValue: platformRawValue) ?? .other }
+        set { platformRawValue = newValue.rawValue }
+    }
+
+    var activityType: ExternalLearningActivityType {
+        get { ExternalLearningActivityType(rawValue: activityTypeRawValue) ?? .other }
+        set { activityTypeRawValue = newValue.rawValue }
+    }
+
+    var status: ExternalLearningActivityStatus {
+        get { ExternalLearningActivityStatus(rawValue: statusRawValue) ?? .todo }
+        set { statusRawValue = newValue.rawValue }
+    }
+
+    var originalURL: URL? {
+        URL(string: originalURLString)
+    }
+}
+
+@Model
+final class EssayAssignment {
+    @Attribute(.unique) var id: UUID
+    var title: String
+    var kindRawValue: String
+    var modeRawValue: String
+    var statusRawValue: String
+    var prompt: String
+    var promptRecognitionNotes: String
+    var expectedWordCount: Int?
+    var durationMinutes: Int?
+    var dueDate: Date?
+    var evaluationCriteria: String
+    var allowedResources: String
+    var outlineThesis: String
+    var outlineArguments: String
+    var outlineEvidence: String
+    var outlineObjections: String
+    var draftBody: String
+    var pasteBlockedCount: Int
+    var activeDuration: TimeInterval
+    var createdAt: Date
+    var updatedAt: Date
+
+    var course: Course?
+    var chapter: Chapter?
+    var promptResource: AcademicResource?
+
+    @Relationship(deleteRule: .cascade, inverse: \EssaySource.assignment)
+    var sources: [EssaySource]
+
+    @Relationship(deleteRule: .cascade, inverse: \EssaySubmission.assignment)
+    var submissions: [EssaySubmission]
+
+    init(
+        id: UUID = UUID(),
+        title: String,
+        kind: EssayAssignmentKind,
+        mode: EssayWorkMode = .training,
+        status: EssayAssignmentStatus = .draft,
+        prompt: String = "",
+        promptRecognitionNotes: String = "",
+        expectedWordCount: Int? = nil,
+        durationMinutes: Int? = nil,
+        dueDate: Date? = nil,
+        evaluationCriteria: String = "",
+        allowedResources: String = "",
+        outlineThesis: String = "",
+        outlineArguments: String = "",
+        outlineEvidence: String = "",
+        outlineObjections: String = "",
+        draftBody: String = "",
+        pasteBlockedCount: Int = 0,
+        activeDuration: TimeInterval = 0,
+        course: Course? = nil,
+        chapter: Chapter? = nil,
+        promptResource: AcademicResource? = nil,
+        createdAt: Date = .now,
+        updatedAt: Date = .now,
+        sources: [EssaySource] = [],
+        submissions: [EssaySubmission] = []
+    ) {
+        self.id = id
+        self.title = title
+        self.kindRawValue = kind.rawValue
+        self.modeRawValue = mode.rawValue
+        self.statusRawValue = status.rawValue
+        self.prompt = prompt
+        self.promptRecognitionNotes = promptRecognitionNotes
+        self.expectedWordCount = expectedWordCount
+        self.durationMinutes = durationMinutes
+        self.dueDate = dueDate
+        self.evaluationCriteria = evaluationCriteria
+        self.allowedResources = allowedResources
+        self.outlineThesis = outlineThesis
+        self.outlineArguments = outlineArguments
+        self.outlineEvidence = outlineEvidence
+        self.outlineObjections = outlineObjections
+        self.draftBody = draftBody
+        self.pasteBlockedCount = pasteBlockedCount
+        self.activeDuration = activeDuration
+        self.course = course
+        self.chapter = chapter
+        self.promptResource = promptResource
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.sources = sources
+        self.submissions = submissions
+    }
+
+    var kind: EssayAssignmentKind {
+        get { EssayAssignmentKind(rawValue: kindRawValue) ?? .essay }
+        set { kindRawValue = newValue.rawValue }
+    }
+
+    var mode: EssayWorkMode {
+        get { EssayWorkMode(rawValue: modeRawValue) ?? .training }
+        set { modeRawValue = newValue.rawValue }
+    }
+
+    var status: EssayAssignmentStatus {
+        get { EssayAssignmentStatus(rawValue: statusRawValue) ?? .draft }
+        set { statusRawValue = newValue.rawValue }
+    }
+}
+
+@Model
+final class EssaySource {
+    @Attribute(.unique) var id: UUID
+    var author: String
+    var title: String
+    var year: String
+    var page: String
+    var urlString: String
+    var highlightedExcerpt: String
+    var note: String
+    var createdAt: Date
+    var updatedAt: Date
+
+    var assignment: EssayAssignment?
+    var resource: AcademicResource?
+    var studyNote: StudyNote?
+
+    init(
+        id: UUID = UUID(),
+        author: String = "",
+        title: String,
+        year: String = "",
+        page: String = "",
+        urlString: String = "",
+        highlightedExcerpt: String = "",
+        note: String = "",
+        assignment: EssayAssignment? = nil,
+        resource: AcademicResource? = nil,
+        studyNote: StudyNote? = nil,
+        createdAt: Date = .now,
+        updatedAt: Date = .now
+    ) {
+        self.id = id
+        self.author = author
+        self.title = title
+        self.year = year
+        self.page = page
+        self.urlString = urlString
+        self.highlightedExcerpt = highlightedExcerpt
+        self.note = note
+        self.assignment = assignment
+        self.resource = resource
+        self.studyNote = studyNote
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+@Model
+final class EssaySubmission {
+    @Attribute(.unique) var id: UUID
+    var versionNumber: Int
+    var body: String
+    var submittedAt: Date
+    var wordCount: Int
+    var activeDuration: TimeInterval
+    var revisionExplanation: String
+    var feedbackStatusRawValue: String
+    var feedbackSourceLabel: String
+    var feedbackGeneratedAt: Date?
+    var feedbackObservations: String
+    var feedbackSuggestions: String
+    var feedbackUncertainties: String
+    var revisionPlan: [String]
+
+    var assignment: EssayAssignment?
+
+    init(
+        id: UUID = UUID(),
+        versionNumber: Int,
+        body: String,
+        submittedAt: Date = .now,
+        wordCount: Int,
+        activeDuration: TimeInterval = 0,
+        revisionExplanation: String = "",
+        feedbackStatus: EssayFeedbackStatus = .notRequested,
+        feedbackSourceLabel: String = "",
+        feedbackGeneratedAt: Date? = nil,
+        feedbackObservations: String = "",
+        feedbackSuggestions: String = "",
+        feedbackUncertainties: String = "",
+        revisionPlan: [String] = [],
+        assignment: EssayAssignment? = nil
+    ) {
+        self.id = id
+        self.versionNumber = versionNumber
+        self.body = body
+        self.submittedAt = submittedAt
+        self.wordCount = wordCount
+        self.activeDuration = activeDuration
+        self.revisionExplanation = revisionExplanation
+        self.feedbackStatusRawValue = feedbackStatus.rawValue
+        self.feedbackSourceLabel = feedbackSourceLabel
+        self.feedbackGeneratedAt = feedbackGeneratedAt
+        self.feedbackObservations = feedbackObservations
+        self.feedbackSuggestions = feedbackSuggestions
+        self.feedbackUncertainties = feedbackUncertainties
+        self.revisionPlan = revisionPlan
+        self.assignment = assignment
+    }
+
+    var feedbackStatus: EssayFeedbackStatus {
+        get { EssayFeedbackStatus(rawValue: feedbackStatusRawValue) ?? .notRequested }
+        set { feedbackStatusRawValue = newValue.rawValue }
+    }
+}
+
+@Model
+final class MathExercise {
+    @Attribute(.unique) var id: UUID
+    var title: String
+    var sourceKindRawValue: String
+    var selectedPage: Int
+    var selectedRegionDescription: String
+    var recognizedPrompt: String
+    var recognitionStatusRawValue: String
+    var recognitionNotes: String
+    var professorSolution: String
+    var createdAt: Date
+    var updatedAt: Date
+
+    var course: Course?
+    var chapter: Chapter?
+    var sourceResource: AcademicResource?
+    var externalActivity: ExternalLearningActivity?
+
+    @Relationship(deleteRule: .cascade, inverse: \MathExerciseAttempt.exercise)
+    var attempts: [MathExerciseAttempt]
+
+    init(
+        id: UUID = UUID(),
+        title: String,
+        sourceKind: MathExerciseSourceKind,
+        selectedPage: Int = 1,
+        selectedRegionDescription: String = "",
+        recognizedPrompt: String = "",
+        recognitionStatus: MathExerciseRecognitionStatus = .notStarted,
+        recognitionNotes: String = "",
+        professorSolution: String = "",
+        course: Course? = nil,
+        chapter: Chapter? = nil,
+        sourceResource: AcademicResource? = nil,
+        externalActivity: ExternalLearningActivity? = nil,
+        createdAt: Date = .now,
+        updatedAt: Date = .now,
+        attempts: [MathExerciseAttempt] = []
+    ) {
+        self.id = id
+        self.title = title
+        self.sourceKindRawValue = sourceKind.rawValue
+        self.selectedPage = max(selectedPage, 1)
+        self.selectedRegionDescription = selectedRegionDescription
+        self.recognizedPrompt = recognizedPrompt
+        self.recognitionStatusRawValue = recognitionStatus.rawValue
+        self.recognitionNotes = recognitionNotes
+        self.professorSolution = professorSolution
+        self.course = course
+        self.chapter = chapter
+        self.sourceResource = sourceResource
+        self.externalActivity = externalActivity
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.attempts = attempts
+    }
+
+    var sourceKind: MathExerciseSourceKind {
+        get { MathExerciseSourceKind(rawValue: sourceKindRawValue) ?? .other }
+        set { sourceKindRawValue = newValue.rawValue }
+    }
+
+    var recognitionStatus: MathExerciseRecognitionStatus {
+        get { MathExerciseRecognitionStatus(rawValue: recognitionStatusRawValue) ?? .notStarted }
+        set { recognitionStatusRawValue = newValue.rawValue }
+    }
+}
+
+@Model
+final class MathExerciseAttempt {
+    @Attribute(.unique) var id: UUID
+    var workModeRawValue: String
+    var statusRawValue: String
+    var startedAt: Date
+    var updatedAt: Date
+    var submittedAt: Date?
+    var activeDuration: TimeInterval
+    var currentQuestionIndex: Int
+    var scratchPageIndex: Int
+    var pencilDrawingData: Data?
+    var typedScratch: String
+    var selectedStepDescription: String
+    var helpRequests: [String]
+    var selfAssessment: String
+
+    var exercise: MathExercise?
+
+    init(
+        id: UUID = UUID(),
+        workMode: MathExerciseWorkMode,
+        status: MathExerciseAttemptStatus = .inProgress,
+        startedAt: Date = .now,
+        updatedAt: Date = .now,
+        submittedAt: Date? = nil,
+        activeDuration: TimeInterval = 0,
+        currentQuestionIndex: Int = 0,
+        scratchPageIndex: Int = 0,
+        pencilDrawingData: Data? = nil,
+        typedScratch: String = "",
+        selectedStepDescription: String = "",
+        helpRequests: [String] = [],
+        selfAssessment: String = "",
+        exercise: MathExercise? = nil
+    ) {
+        self.id = id
+        self.workModeRawValue = workMode.rawValue
+        self.statusRawValue = status.rawValue
+        self.startedAt = startedAt
+        self.updatedAt = updatedAt
+        self.submittedAt = submittedAt
+        self.activeDuration = activeDuration
+        self.currentQuestionIndex = currentQuestionIndex
+        self.scratchPageIndex = scratchPageIndex
+        self.pencilDrawingData = pencilDrawingData
+        self.typedScratch = typedScratch
+        self.selectedStepDescription = selectedStepDescription
+        self.helpRequests = helpRequests
+        self.selfAssessment = selfAssessment
+        self.exercise = exercise
+    }
+
+    var workMode: MathExerciseWorkMode {
+        get { MathExerciseWorkMode(rawValue: workModeRawValue) ?? .autonomy }
+        set { workModeRawValue = newValue.rawValue }
+    }
+
+    var status: MathExerciseAttemptStatus {
+        get { MathExerciseAttemptStatus(rawValue: statusRawValue) ?? .inProgress }
+        set { statusRawValue = newValue.rawValue }
     }
 }
