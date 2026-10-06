@@ -11,6 +11,10 @@ enum QuickAddTarget: Identifiable {
     case resource(Course?, Chapter?, ClassSession?)
     case note(Course?, Chapter?, ClassSession?, AcademicResource?)
     case recording(Course?, Chapter?, ClassSession?)
+    case studyDeck(Course?, Chapter?, ClassSession?)
+    case flashcard(StudyDeck?)
+    case bulkFlashcards(Course?, Chapter?)
+    case quiz(Course?, Chapter?, ClassSession?)
     case disabled(String)
 
     var id: String {
@@ -24,6 +28,10 @@ enum QuickAddTarget: Identifiable {
         case .resource(let course, let chapter, let session): "resource-\(course?.id.uuidString ?? "none")-\(chapter?.id.uuidString ?? "none")-\(session?.id.uuidString ?? "none")"
         case .note(let course, let chapter, let session, let resource): "note-\(course?.id.uuidString ?? "none")-\(chapter?.id.uuidString ?? "none")-\(session?.id.uuidString ?? "none")-\(resource?.id.uuidString ?? "none")"
         case .recording(let course, let chapter, let session): "recording-\(course?.id.uuidString ?? "none")-\(chapter?.id.uuidString ?? "none")-\(session?.id.uuidString ?? "none")"
+        case .studyDeck(let course, let chapter, let session): "studydeck-\(course?.id.uuidString ?? "none")-\(chapter?.id.uuidString ?? "none")-\(session?.id.uuidString ?? "none")"
+        case .flashcard(let deck): "flashcard-\(deck?.id.uuidString ?? "none")"
+        case .bulkFlashcards(let course, let chapter): "bulkflashcards-\(course?.id.uuidString ?? "none")-\(chapter?.id.uuidString ?? "none")"
+        case .quiz(let course, let chapter, let session): "quiz-\(course?.id.uuidString ?? "none")-\(chapter?.id.uuidString ?? "none")-\(session?.id.uuidString ?? "none")"
         case .disabled(let title): "disabled-\(title)"
         }
     }
@@ -60,6 +68,14 @@ struct QuickAddSheet: View {
             QuickNoteCreatorView(initialCourse: course, initialChapter: chapter, initialSession: session, initialResource: resource)
         case .recording(let course, let chapter, let session):
             RecordingFormView(initialCourse: course, initialChapter: chapter, initialSession: session)
+        case .studyDeck(let course, let chapter, let session):
+            StudyDeckFormView(initialCourse: course, initialChapter: chapter, initialSession: session)
+        case .flashcard(let deck):
+            FlashcardFormView(initialDeck: deck)
+        case .bulkFlashcards(let course, let chapter):
+            BulkFlashcardImportView(initialCourse: course, initialChapter: chapter)
+        case .quiz(let course, let chapter, _):
+            QuizFormView(initialCourse: course, initialChapter: chapter)
         case .disabled(let title):
             MissingContextView(title: title, message: "This option is documented for a future lot and is intentionally disabled in this build.")
         }
@@ -192,10 +208,18 @@ struct QuickAddMenu: View {
             .disabled(defaultCourse == nil)
             .help(defaultCourse == nil ? "Choose a course before recording." : "Record audio for the current course.")
             Divider()
-            Label("Create Flashcards", systemImage: "lock")
-                .foregroundStyle(.secondary)
-            Label("Create Quiz", systemImage: "lock")
-                .foregroundStyle(.secondary)
+            Button("Create Deck", systemImage: "rectangle.stack.badge.plus") {
+                quickAddTarget = .studyDeck(defaultCourse, nil, nil)
+            }
+            Button("Create Flashcards", systemImage: "rectangle.stack.badge.plus") {
+                quickAddTarget = .flashcard(nil)
+            }
+            Button("Bulk Import Flashcards", systemImage: "text.badge.plus") {
+                quickAddTarget = .bulkFlashcards(defaultCourse, nil)
+            }
+            Button("Create Quiz", systemImage: "questionmark.app") {
+                quickAddTarget = .quiz(defaultCourse, nil, nil)
+            }
             if defaultCourse == nil {
                 Divider()
                 Text("Course-specific actions unlock after you create a course.")

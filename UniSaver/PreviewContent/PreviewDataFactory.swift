@@ -49,6 +49,7 @@ enum PreviewDataFactory {
 
         if includeDashboardDemo {
             addDashboardDemoData(context: context, courses: courses, calendar: calendar, today: today)
+            addStudyDemoData(context: context, courses: courses, calendar: calendar, today: today)
         }
 
         try? context.save()
@@ -142,6 +143,64 @@ enum PreviewDataFactory {
         if let storedAudio = try? fileStore.writeDemoFile(named: "unisaver-demo-recording.m4a", data: Data("Demo recording placeholder created by UniSaver.\n".utf8)) {
             context.insert(CourseRecording(title: "Demand Curves lecture recording", storedRelativePath: storedAudio.storedRelativePath, duration: 540, course: micro, chapter: micro.chapters.first, session: micro.sessions.first, notes: "Demo metadata. Replace with a real recording from the recorder."))
         }
+    }
+
+    private static func addStudyDemoData(context: ModelContext, courses: [Course], calendar: Calendar, today: Date) {
+        let deckSpecs: [(Course, String, [String])] = [
+            (courses[0], "Elasticity Core Concepts", ["Price elasticity definition", "Elastic demand", "Inelastic demand", "Unit elastic", "Total revenue test", "Cross elasticity", "Income elasticity", "Demand determinants", "Supply elasticity", "Midpoint method", "Perfectly elastic", "Perfectly inelastic", "Luxury goods", "Necessities", "Substitutes", "Complements"]),
+            (courses[1], "Optimization Practice", ["Gradient", "Constraint", "Lagrange multiplier", "Objective function", "Feasible set", "Convexity", "Local optimum", "Global optimum", "Derivative test", "Matrix rank", "Linear independence", "Eigenvalue", "System solution", "Boundary condition", "Partial derivative"]),
+            (courses[2], "Python Foundations", ["Variable", "Function", "Loop", "Conditional", "List", "Dictionary", "Tuple", "Set", "Module", "Exception", "Class", "Method", "Parameter", "Return value", "Debugging", "Complexity"]),
+            (courses[4], "German Academic Vocabulary", ["Vorlesung", "Seminar", "Prüfung", "Hausarbeit", "Bibliothek", "Sprechstunde", "Abgabe", "Kapitel", "Zusammenfassung", "Übung", "Forschung", "Quelle", "Beispiel", "Frage", "Antwort"])
+        ]
+
+        for (course, title, terms) in deckSpecs {
+            let deck = StudyDeck(
+                title: title,
+                deckDescription: "Demo deck for \(course.name).",
+                colorIdentifier: course.colorIdentifier,
+                symbolName: course.symbolName ?? "rectangle.stack.fill",
+                course: course,
+                chapter: course.chapters.first
+            )
+            context.insert(deck)
+            for (index, term) in terms.enumerated() {
+                let dueOffset = index % 4 == 0 ? -1 : index % 4
+                let dueDate = calendar.date(byAdding: .day, value: dueOffset, to: today) ?? today
+                let card = Flashcard(
+                    front: "Explain \(term)",
+                    back: "A concise academic explanation of \(term) in \(course.name).",
+                    hint: "Connect it to \(course.chapters.first?.title ?? course.name).",
+                    explanation: "Demo content. Replace with your own course-specific explanation after review.",
+                    tags: [course.code.lowercased(), "demo"],
+                    position: index,
+                    reviewState: FlashcardReviewState(dueDate: dueDate, interval: Double(max(index, 1)) * 86_400, repetitions: index % 3, lastReviewedAt: calendar.date(byAdding: .day, value: -index, to: today)),
+                    deck: deck
+                )
+                deck.cards.append(card)
+                context.insert(card)
+            }
+        }
+
+        let microQuiz = Quiz(title: "Elasticity Practice Quiz", quizDescription: "Demo QCM for price elasticity.", mode: .practice, course: courses[0], chapter: courses[0].chapters.first { $0.title == "Price Elasticity" })
+        let mathQuiz = Quiz(title: "Optimization Check", quizDescription: "Short exam-mode practice.", mode: .exam, course: courses[1], chapter: courses[1].chapters.first { $0.title == "Optimization" })
+        context.insert(microQuiz)
+        context.insert(mathQuiz)
+
+        let questions = [
+            QuizQuestion(prompt: "If demand is elastic, what happens to total revenue when price decreases?", type: .multipleChoice, choices: ["A: It decreases", "B: It increases", "C: It stays constant", "D: Quantity stays constant"], correctAnswers: ["B"], explanation: "Quantity rises proportionally more than price falls.", position: 0, tags: ["elasticity"], quiz: microQuiz),
+            QuizQuestion(prompt: "True or false: A binding constraint affects the feasible solution.", type: .trueFalse, choices: ["True", "False"], correctAnswers: ["True"], explanation: "A binding constraint is active at the optimum.", position: 0, tags: ["optimization"], quiz: mathQuiz),
+            QuizQuestion(prompt: "Name one condition checked in constrained optimization.", type: .shortAnswer, choices: [], correctAnswers: ["constraint"], explanation: "Constraints define feasible solutions.", position: 1, tags: ["optimization"], quiz: mathQuiz)
+        ]
+        questions.forEach { question in
+            context.insert(question)
+            question.quiz?.questions.append(question)
+        }
+        let attempt = QuizAttempt(startedAt: calendar.date(byAdding: .day, value: -1, to: today) ?? today, completedAt: today, score: 1, maximumScore: 1, answers: ["B"], duration: 180, isCompleted: true, quiz: microQuiz)
+        microQuiz.attempts.append(attempt)
+        context.insert(attempt)
+        let continuing = QuizAttempt(startedAt: calendar.date(byAdding: .hour, value: -2, to: .now) ?? .now, answers: ["True"], duration: 90, isCompleted: false, quiz: mathQuiz)
+        mathQuiz.attempts.append(continuing)
+        context.insert(continuing)
     }
 
     private static func demoPDFData() -> Data {

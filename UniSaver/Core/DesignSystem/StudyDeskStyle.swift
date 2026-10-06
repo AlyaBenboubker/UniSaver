@@ -208,3 +208,194 @@ extension View {
         modifier(DeskCardModifier())
     }
 }
+
+struct CreationWindow<Content: View, Footer: View>: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+    let accent: Color
+    let closeAction: () -> Void
+    @ViewBuilder var content: Content
+    @ViewBuilder var footer: Footer
+
+    var body: some View {
+        VStack(spacing: 0) {
+            CreationWindowHeader(icon: icon, title: title, subtitle: subtitle, accent: accent, closeAction: closeAction)
+            Divider()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    content
+                }
+                .frame(maxWidth: 760, alignment: .leading)
+                .padding(.horizontal, 28)
+                .padding(.vertical, 22)
+                .frame(maxWidth: .infinity)
+            }
+            .background(StudyDeskTheme.backgroundPrimary)
+            Divider()
+            footer
+                .padding(.horizontal, 24)
+                .padding(.vertical, 14)
+                .background(StudyDeskTheme.surfacePrimary)
+        }
+        .background(StudyDeskTheme.backgroundPrimary)
+    }
+}
+
+struct CreationWindowHeader: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+    let accent: Color
+    let closeAction: () -> Void
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 14) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [accent.opacity(0.20), accent.opacity(0.08)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                Image(systemName: icon)
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(accent)
+            }
+            .frame(width: 44, height: 44)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.title3.weight(.semibold))
+                Text(subtitle)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer()
+            Button(action: closeAction) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 12, weight: .bold))
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.plain)
+            .background(StudyDeskTheme.surfaceTinted, in: Circle())
+            .help("Close")
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 18)
+        .background(
+            LinearGradient(
+                colors: [accent.opacity(0.10), StudyDeskTheme.surfacePrimary],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+    }
+}
+
+struct CreationStepIndicator: View {
+    let steps: [String]
+    let currentStep: Int
+    let accent: Color
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(Array(steps.enumerated()), id: \.offset) { index, title in
+                HStack(spacing: 6) {
+                    Text("\(index + 1)")
+                        .font(.caption.weight(.bold))
+                        .frame(width: 20, height: 20)
+                        .background(index <= currentStep ? accent.opacity(0.18) : StudyDeskTheme.surfaceTinted, in: Circle())
+                    Text(title)
+                        .font(.caption.weight(index == currentStep ? .semibold : .regular))
+                        .lineLimit(1)
+                }
+                .foregroundStyle(index <= currentStep ? .primary : .secondary)
+                if index < steps.count - 1 {
+                    Rectangle()
+                        .fill(StudyDeskTheme.borderSubtle)
+                        .frame(width: 20, height: 1)
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+struct CreationCard<Content: View>: View {
+    let title: String
+    let subtitle: String?
+    @ViewBuilder var content: Content
+
+    init(_ title: String, subtitle: String? = nil, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.subtitle = subtitle
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.headline)
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            content
+        }
+        .padding(16)
+        .background(StudyDeskTheme.surfacePrimary, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(StudyDeskTheme.borderSubtle, lineWidth: 1)
+        }
+        .shadow(color: StudyDeskTheme.shadow, radius: 10, y: 4)
+    }
+}
+
+struct CreationPrimaryButton: View {
+    let title: String
+    let systemImage: String
+    let accent: Color
+    let isDisabled: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(.callout.weight(.semibold))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(
+                    LinearGradient(
+                        colors: [accent, accent.opacity(0.78)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    in: RoundedRectangle(cornerRadius: 9, style: .continuous)
+                )
+                .foregroundStyle(.white)
+        }
+        .buttonStyle(.plain)
+        .disabled(isDisabled)
+        .opacity(isDisabled ? 0.45 : 1)
+    }
+}
+
+struct CreationErrorText: View {
+    let message: String
+
+    var body: some View {
+        Label(message, systemImage: "exclamationmark.circle")
+            .font(.caption)
+            .foregroundStyle(.red)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+}

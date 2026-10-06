@@ -26,17 +26,18 @@ struct SessionFormView: View {
     @State private var reviewTasksText: String
     @State private var errorMessage: String?
 
-    init(course: Course, session: ClassSession? = nil, initialChapter: Chapter? = nil) {
+    init(course: Course, session: ClassSession? = nil, initialChapter: Chapter? = nil, initialDate: Date? = nil) {
         self.course = course
         self.session = session
         self.initialChapter = initialChapter
         let nextNumber = course.sessions.map(\.number).max().map { $0 + 1 } ?? 1
-        let proposedStart = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: .now) ?? .now
+        let baseDate = initialDate ?? .now
+        let proposedStart = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: baseDate) ?? baseDate
         let proposedEnd = Calendar.current.date(byAdding: .minute, value: 90, to: proposedStart) ?? proposedStart.addingTimeInterval(5400)
         _title = State(initialValue: session?.title ?? "")
         _number = State(initialValue: session?.number ?? nextNumber)
         _sessionDescription = State(initialValue: session?.sessionDescription ?? "")
-        _date = State(initialValue: session?.date ?? .now)
+        _date = State(initialValue: session?.date ?? Calendar.current.startOfDay(for: baseDate))
         _startTime = State(initialValue: session?.startTime ?? proposedStart)
         _endTime = State(initialValue: session?.endTime ?? proposedEnd)
         _room = State(initialValue: session?.room ?? course.defaultRoom ?? "")

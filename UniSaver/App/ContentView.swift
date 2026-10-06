@@ -3,11 +3,14 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @State private var selection: AppSection? = .today
+    @Query private var sessions: [ClassSession]
+    @State private var navigation = AppNavigationState()
     @State private var quickAddTarget: QuickAddTarget?
     @State private var columnVisibility: NavigationSplitViewVisibility = .detailOnly
     @State private var currentWindowWidth: CGFloat = 0
-    @State private var plannerTaskFilter: PlannerTaskFilter = .open
+    @State private var pendingWorkspaceAction: WorkspaceResetAction?
+    @State private var workspaceError: WorkspaceError?
+    @AppStorage(AppLanguage.storageKey) private var appLanguageRawValue = AppLanguage.system.rawValue
 
     private let primarySections: [AppSection] = [.today, .classes, .study, .planner, .progress, .library]
 
@@ -22,10 +25,10 @@ struct ContentView: View {
                         ForEach(primarySections) { section in
                             SidebarNavigationButton(
                                 section: section,
-                                isSelected: selection == section,
+                                isSelected: navigation.selectedSection == section,
                                 isCondensed: navigationMode != .wide,
                                 action: {
-                                    selection = section
+                                    navigation.requestSelect(section)
                                     closeSidebarIfCompact()
                                 }
                             )
@@ -37,17 +40,17 @@ struct ContentView: View {
                     Spacer(minLength: 18)
 
                     if navigationMode != .compact {
-                        StudyStreakCard(isCondensed: navigationMode != .wide)
+                        StudyStreakCard(sessions: sessions, isCondensed: navigationMode != .wide)
                             .padding(.horizontal, 14)
                             .padding(.bottom, 10)
                     }
 
                     SidebarNavigationButton(
                         section: .settings,
-                        isSelected: selection == .settings,
+                        isSelected: navigation.selectedSection == .settings,
                         isCondensed: navigationMode != .wide,
                         action: {
-                            selection = .settings
+                            navigation.requestSelect(.settings)
                             closeSidebarIfCompact()
                         }
                     )
@@ -70,17 +73,17 @@ struct ContentView: View {
             } detail: {
                 NavigationStack {
                     Group {
-                        switch selection ?? .today {
+                        switch navigation.selectedSection {
                         case .today:
                             TodayView(quickAddTarget: $quickAddTarget)
                         case .classes:
                             ClassesView(quickAddTarget: $quickAddTarget)
                         case .study:
-                            PlaceholderFeatureView(section: .study)
+                            StudyStudioView(quickAddTarget: $quickAddTarget)
                         case .planner:
-                            PlannerView(initialFilter: plannerTaskFilter)
+                            PlannerView(initialFilter: navigation.plannerTaskFilter)
                         case .progress:
-                            PlaceholderFeatureView(section: .progress)
+                            ProgressDashboardView()
                         case .library:
                             LibraryView()
                         case .settings:
@@ -110,34 +113,31 @@ struct ContentView: View {
                     }
                     .onReceive(NotificationCenter.default.publisher(for: .selectAppSection)) { notification in
                         if let section = notification.object as? AppSection {
-                            selection = section
+                            navigation.requestSelect(section)
                         }
                     }
                     .onReceive(NotificationCenter.default.publisher(for: .loadDemoWorkspace)) { _ in
                         DemoWorkspaceService.loadDemoWorkspace(in: modelContext)
-                        selection = .today
+                        navigation.requestSelect(.today)
                     }
                     .onReceive(NotificationCenter.default.publisher(for: .resetDemoData)) { _ in
-                        DemoWorkspaceService.resetWorkspace(in: modelContext)
-                        DemoWorkspaceService.loadDemoWorkspace(in: modelContext)
-                        selection = .today
+                        pendingWorkspaceAction = .resetDemoData
                     }
                     .onReceive(NotificationCenter.default.publisher(for: .resetWorkspaceChoice)) { _ in
                         DemoWorkspaceService.resetWorkspaceChoice(in: modelContext)
-                        selection = .today
+                        navigation.requestSelect(.today)
                     }
                     .onReceive(NotificationCenter.default.publisher(for: .startEmptyWorkspace)) { _ in
-                        DemoWorkspaceService.resetWorkspace(in: modelContext)
-                        DemoWorkspaceService.startEmptyWorkspace(in: modelContext)
-                        selection = .today
+                        pendingWorkspaceAction = .startEmptyWorkspace
                     }
                     .onReceive(NotificationCenter.default.publisher(for: .openPlannerTasks)) { notification in
                         if let filter = notification.object as? PlannerTaskFilter {
-                            plannerTaskFilter = filter
+                            navigation.plannerTaskFilter = filter
                         }
-                        selection = .planner
+                        navigation.requestSelect(.planner)
                     }
                 }
+                .id(navigation.selectedSection)
             }
             .onAppear {
                 currentWindowWidth = proxy.size.width
@@ -147,7 +147,29 @@ struct ContentView: View {
                 currentWindowWidth = newWidth
                 updateColumnVisibility(for: newWidth)
             }
+            .confirmationDialog(
+                pendingWorkspaceAction?.title ?? "Confirm workspace action",
+                isPresented: Binding(
+                    get: { pendingWorkspaceAction != nil },
+                    set: { if !$0 { pendingWorkspaceAction = nil } }
+                )
+            ) {
+                if let pendingWorkspaceAction {
+                    Button(pendingWorkspaceAction.confirmTitle, role: .destructive) {
+                        performWorkspaceAction(pendingWorkspaceAction)
+                    }
+                }
+                Button("Cancel", role: .cancel) { pendingWorkspaceAction = nil }
+            } message: {
+                Text(pendingWorkspaceAction?.message ?? "")
+            }
+            .alert(item: $workspaceError) { error in
+                Alert(title: Text("Workspace update failed"), message: Text(error.message), dismissButton: .default(Text("OK")))
+            }
         }
+        .environment(navigation)
+        .environment(\.locale, (AppLanguage(rawValue: appLanguageRawValue) ?? .system).locale)
+        .environment(\.layoutDirection, (AppLanguage(rawValue: appLanguageRawValue) ?? .system).layoutDirection)
     }
 
     private func navigationLayoutMode(totalWidth: CGFloat) -> StudyDeskLayoutMode {
@@ -193,6 +215,60 @@ struct ContentView: View {
             columnVisibility = columnVisibility == .all ? .detailOnly : .all
         }
     }
+
+    private func performWorkspaceAction(_ action: WorkspaceResetAction) {
+        do {
+            try DemoWorkspaceService.resetWorkspaceThrowing(in: modelContext)
+            switch action {
+            case .resetDemoData:
+                DemoWorkspaceService.loadDemoWorkspace(in: modelContext)
+            case .startEmptyWorkspace:
+                DemoWorkspaceService.startEmptyWorkspace(in: modelContext)
+            }
+            navigation.select(.today)
+        } catch {
+            workspaceError = WorkspaceError(message: error.localizedDescription)
+        }
+        pendingWorkspaceAction = nil
+    }
+}
+
+private enum WorkspaceResetAction: Identifiable {
+    case resetDemoData
+    case startEmptyWorkspace
+
+    var id: String {
+        switch self {
+        case .resetDemoData: "resetDemoData"
+        case .startEmptyWorkspace: "startEmptyWorkspace"
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .resetDemoData: "Reset demo data?"
+        case .startEmptyWorkspace: "Start empty workspace?"
+        }
+    }
+
+    var confirmTitle: String {
+        switch self {
+        case .resetDemoData: "Reset and Load Demo"
+        case .startEmptyWorkspace: "Erase and Start Empty"
+        }
+    }
+
+    var message: String {
+        switch self {
+        case .resetDemoData: "This replaces the current workspace with demo data. Existing courses, study data, files metadata, and understanding checks in this store will be removed."
+        case .startEmptyWorkspace: "This removes the current workspace data and starts with a blank workspace."
+        }
+    }
+}
+
+private struct WorkspaceError: Identifiable {
+    let id = UUID()
+    let message: String
 }
 
 private struct SidebarNavigationButton: View {
@@ -203,7 +279,7 @@ private struct SidebarNavigationButton: View {
 
     var body: some View {
         Button(action: action) {
-            Label(section.title, systemImage: section.symbolName)
+            Label(section.title(for: AppLanguage.current), systemImage: section.symbolName)
                 .font((isCondensed ? Font.caption : Font.callout).weight(.medium))
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 12)
@@ -217,7 +293,12 @@ private struct SidebarNavigationButton: View {
 }
 
 private struct StudyStreakCard: View {
+    let sessions: [ClassSession]
     var isCondensed = false
+
+    private var summary: SessionStreakSummary {
+        SessionStreakCalculator.summary(from: sessions, calendar: .current, now: .now)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: isCondensed ? 5 : 8) {
@@ -229,16 +310,25 @@ private struct StudyStreakCard: View {
                     .font(.caption)
                     .foregroundStyle(StudyDeskTheme.accentPrimary)
             }
-            Text("12")
-                .font(.system(isCondensed ? .headline : .title2, design: .rounded).weight(.bold))
-            Text("days")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            if summary.completedSessionCount == 0 {
+                Text(AppLanguage.current == .french ? "Aucune séance terminée" : "No completed sessions yet")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Text("\(summary.currentStreak)")
+                    .font(.system(isCondensed ? .headline : .title2, design: .rounded).weight(.bold))
+                Text(AppLanguage.current == .french ? "jours" : "days")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             HStack(spacing: 4) {
-                ForEach(0..<9, id: \.self) { index in
+                ForEach(summary.recentDays) { day in
                     Circle()
-                        .fill(index < 7 ? Color.accentColor : StudyDeskTheme.borderSubtle)
+                        .fill(day.hasCompletedSession ? Color.accentColor : StudyDeskTheme.borderSubtle)
                         .frame(width: 7, height: 7)
+                        .accessibilityLabel(day.date.formatted(date: .abbreviated, time: .omitted))
+                        .accessibilityValue(day.hasCompletedSession ? "Completed session" : "No completed session")
                 }
             }
         }
@@ -249,6 +339,50 @@ private struct StudyStreakCard: View {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .stroke(StudyDeskTheme.borderSubtle, lineWidth: 1)
         }
+    }
+}
+
+struct SessionStreakSummary {
+    let currentStreak: Int
+    let completedSessionCount: Int
+    let recentDays: [SessionStreakDay]
+}
+
+struct SessionStreakDay: Identifiable {
+    let date: Date
+    let hasCompletedSession: Bool
+
+    var id: Date { date }
+}
+
+enum SessionStreakCalculator {
+    static func summary(from sessions: [ClassSession], calendar: Calendar, now: Date) -> SessionStreakSummary {
+        let completedDays = Set(
+            sessions
+                .filter { $0.attendanceStatus == .attended && $0.endTime <= now }
+                .map { calendar.startOfDay(for: $0.date) }
+        )
+        let today = calendar.startOfDay(for: now)
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: today) ?? today
+        var cursor = completedDays.contains(today) ? today : yesterday
+        var currentStreak = 0
+
+        while completedDays.contains(cursor) {
+            currentStreak += 1
+            guard let previousDay = calendar.date(byAdding: .day, value: -1, to: cursor) else { break }
+            cursor = previousDay
+        }
+
+        let recentDays = (0..<9).reversed().compactMap { offset -> SessionStreakDay? in
+            guard let date = calendar.date(byAdding: .day, value: -offset, to: today) else { return nil }
+            return SessionStreakDay(date: date, hasCompletedSession: completedDays.contains(date))
+        }
+
+        return SessionStreakSummary(
+            currentStreak: currentStreak,
+            completedSessionCount: sessions.filter { $0.attendanceStatus == .attended && $0.endTime <= now }.count,
+            recentDays: recentDays
+        )
     }
 }
 
