@@ -1050,13 +1050,13 @@ final class Flashcard {
 
     /// Backing storage for ``reviewState``.
     ///
-    /// `FlashcardReviewState` is a composite `Codable` struct containing a
-    /// nested optional enum (`lastRating`). SwiftData's attribute coder cannot
-    /// round-trip that shape (it fails to decode on fetch with
-    /// "Unable to decode this value FlashcardReviewState(...)"), so we persist
-    /// the struct as a JSON blob and expose it through a `@Transient` accessor.
-    /// This mirrors the `ClassSession.sessionType` / `sessionTypeRawValue`
-    /// pattern already used in this schema.
+    /// `FlashcardReviewState` is a composite `Codable` struct. SwiftData's
+    /// attribute coder (ModelCoders) cannot round-trip it on this toolchain —
+    /// on fetch it traps with "Unable to decode this value
+    /// FlashcardReviewState(...)", crashing the app before any card can be read.
+    /// Persist the struct as a single JSON `Data` blob and expose it through a
+    /// `@Transient` accessor, mirroring the `ClassSession.sessionType` /
+    /// `sessionTypeRawValue` pattern already used in this schema.
     var reviewStateData: Data?
 
     @Transient var reviewState: FlashcardReviewState {
