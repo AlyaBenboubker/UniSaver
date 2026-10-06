@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 import CryptoKit
 import UniformTypeIdentifiers
@@ -26,6 +27,23 @@ struct StoredAcademicFile: Equatable {
     let fileSize: Int64
     let resourceKind: AcademicResourceKind
     let contentHash: String
+}
+
+struct PreparedAcademicRecording: Equatable {
+    let url: URL
+    let originalFileName: String
+    let storedRelativePath: String
+    let mimeType: String
+    let fileExtension: String
+}
+
+struct SavedAcademicRecording: Equatable {
+    let originalFileName: String
+    let storedRelativePath: String
+    let mimeType: String
+    let fileExtension: String
+    let fileSize: Int64
+    let duration: TimeInterval
 }
 
 struct AcademicFileStore {
@@ -66,15 +84,53 @@ struct AcademicFileStore {
 
         do {
             try fileManager.copyItem(at: sourceURL, to: destinationURL)
-            let size = try fileManager.attributesOfItem(atPath: destinationURL.path)[.size] as? NSNumber
+            let size = try Self.byteSize(for: destinationURL, fileManager: fileManager)
             return StoredAcademicFile(
                 originalFileName: originalName,
                 storedRelativePath: storedName,
                 mimeType: mimeType,
                 fileExtension: fileExtension,
-                fileSize: size?.int64Value ?? 0,
+                fileSize: size,
                 resourceKind: kind,
                 contentHash: contentHash
+            )
+        } catch {
+            try? fileManager.removeItem(at: destinationURL)
+            throw AcademicFileStoreError.copyFailed
+        }
+    }
+
+    func importRecording(from sourceURL: URL) throws -> SavedAcademicRecording {
+        let didAccess = sourceURL.startAccessingSecurityScopedResource()
+        defer {
+            if didAccess {
+                sourceURL.stopAccessingSecurityScopedResource()
+            }
+        }
+
+        guard fileManager.fileExists(atPath: sourceURL.path) else {
+            throw AcademicFileStoreError.sourceUnavailable
+        }
+
+        let fileExtension = sourceURL.pathExtension.localizedLowercase
+        guard ["m4a", "mp3", "wav", "aac", "caf"].contains(fileExtension) else {
+            throw AcademicFileStoreError.unsupportedFile
+        }
+
+        try fileManager.createDirectory(at: rootDirectory, withIntermediateDirectories: true)
+        let storedName = "\(UUID().uuidString).\(fileExtension)"
+        let destinationURL = rootDirectory.appending(path: storedName)
+        do {
+            try fileManager.copyItem(at: sourceURL, to: destinationURL)
+            let size = try fileManager.attributesOfItem(atPath: destinationURL.path)[.size] as? NSNumber
+            let duration = (try? AVAudioPlayer(contentsOf: destinationURL).duration) ?? 0
+            return SavedAcademicRecording(
+                originalFileName: sourceURL.lastPathComponent,
+                storedRelativePath: storedName,
+                mimeType: Self.mimeType(for: fileExtension),
+                fileExtension: fileExtension,
+                fileSize: size?.int64Value ?? 0,
+                duration: duration
             )
         } catch {
             try? fileManager.removeItem(at: destinationURL)
@@ -86,7 +142,7 @@ struct AcademicFileStore {
         try fileManager.createDirectory(at: rootDirectory, withIntermediateDirectories: true)
         let destinationURL = rootDirectory.appending(path: fileName)
         try data.write(to: destinationURL, options: .atomic)
-        let size = try fileManager.attributesOfItem(atPath: destinationURL.path)[.size] as? NSNumber
+        let size = try Self.byteSize(for: destinationURL, fileManager: fileManager)
         let fileExtension = destinationURL.pathExtension.localizedLowercase
         let contentHash = try Self.sha256Hex(for: destinationURL)
         return StoredAcademicFile(
@@ -94,9 +150,44 @@ struct AcademicFileStore {
             storedRelativePath: fileName,
             mimeType: Self.mimeType(for: fileExtension),
             fileExtension: fileExtension,
-            fileSize: size?.int64Value ?? 0,
+            fileSize: size,
             resourceKind: Self.resourceKind(for: fileExtension),
             contentHash: contentHash
+        )
+    }
+
+    func prepareRecordingDestination(originalTitle: String, fileExtension: String = "m4a") throws -> PreparedAcademicRecording {
+        try fileManager.createDirectory(at: rootDirectory, withIntermediateDirectories: true)
+        let sanitizedTitle = originalTitle
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "/", with: "-")
+        let originalName = "\(sanitizedTitle.isEmpty ? "Course recording" : sanitizedTitle).\(fileExtension)"
+        let storedName = "\(UUID().uuidString).\(fileExtension)"
+        return PreparedAcademicRecording(
+            url: rootDirectory.appending(path: storedName),
+            originalFileName: originalName,
+            storedRelativePath: storedName,
+            mimeType: Self.mimeType(for: fileExtension),
+            fileExtension: fileExtension
+        )
+    }
+
+    func savedRecording(from prepared: PreparedAcademicRecording, duration: TimeInterval) throws -> SavedAcademicRecording {
+        guard fileManager.fileExists(atPath: prepared.url.path) else {
+            throw AcademicFileStoreError.fileMissing
+        }
+        let size = try fileManager.attributesOfItem(atPath: prepared.url.path)[.size] as? NSNumber
+        guard (size?.int64Value ?? 0) > 0 else {
+            try? fileManager.removeItem(at: prepared.url)
+            throw AcademicFileStoreError.copyFailed
+        }
+        return SavedAcademicRecording(
+            originalFileName: prepared.originalFileName,
+            storedRelativePath: prepared.storedRelativePath,
+            mimeType: prepared.mimeType,
+            fileExtension: prepared.fileExtension,
+            fileSize: size?.int64Value ?? 0,
+            duration: duration
         )
     }
 
@@ -148,8 +239,44 @@ struct AcademicFileStore {
     }
 
     private static func sha256Hex(for url: URL) throws -> String {
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) else {
+            throw AcademicFileStoreError.sourceUnavailable
+        }
+        if isDirectory.boolValue {
+            let files = try FileManager.default
+                .contentsOfDirectory(at: url, includingPropertiesForKeys: nil)
+                .sorted { $0.path < $1.path }
+            var hasher = SHA256()
+            for file in files {
+                let relativePath = file.path.replacingOccurrences(of: url.path, with: "")
+                hasher.update(data: Data(relativePath.utf8))
+                var childIsDirectory: ObjCBool = false
+                if FileManager.default.fileExists(atPath: file.path, isDirectory: &childIsDirectory), childIsDirectory.boolValue {
+                    hasher.update(data: Data(try sha256Hex(for: file).utf8))
+                } else {
+                    hasher.update(data: try Data(contentsOf: file))
+                }
+            }
+            return hasher.finalize().map { String(format: "%02x", $0) }.joined()
+        }
         let data = try Data(contentsOf: url)
         let digest = SHA256.hash(data: data)
         return digest.map { String(format: "%02x", $0) }.joined()
+    }
+
+    private static func byteSize(for url: URL, fileManager: FileManager) throws -> Int64 {
+        var isDirectory: ObjCBool = false
+        guard fileManager.fileExists(atPath: url.path, isDirectory: &isDirectory) else {
+            throw AcademicFileStoreError.sourceUnavailable
+        }
+        if !isDirectory.boolValue {
+            let size = try fileManager.attributesOfItem(atPath: url.path)[.size] as? NSNumber
+            return size?.int64Value ?? 0
+        }
+        let files = try fileManager.contentsOfDirectory(at: url, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles])
+        return try files.reduce(Int64(0)) { total, file in
+            total + (try byteSize(for: file, fileManager: fileManager))
+        }
     }
 }
