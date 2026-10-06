@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 import SwiftData
 import Testing
@@ -175,6 +176,65 @@ struct UniSaverTests {
         #expect(snapshot.assignmentDue?.title == "Soon")
     }
 
+    @Test func weeklyOverviewUsesMondayThroughSundayAndSortsDays() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        let wednesday = calendar.date(from: DateComponents(year: 2026, month: 9, day: 23, hour: 12)) ?? Date()
+        let interval = TodayDashboardService.weekInterval(containing: wednesday, calendar: calendar)
+
+        #expect(calendar.component(.weekday, from: interval.start) == 2)
+        #expect(calendar.component(.weekday, from: interval.end.addingTimeInterval(-1)) == 1)
+
+        let course = Course(name: "Math", code: "MAT")
+        let monday = interval.start
+        let session = ClassSession(number: 1, title: "Algebra", date: monday, startTime: monday.addingTimeInterval(9 * 3600), endTime: monday.addingTimeInterval(10 * 3600), course: course)
+        let overview = TodayDashboardService.makeWeeklyOverview(selectedDate: wednesday, sessions: [session], tasks: [], flashcards: [], calendar: calendar, now: wednesday)
+
+        #expect(overview.days.count == 7)
+        #expect(overview.days.first?.sessions.first?.title == "Algebra")
+    }
+
+    @Test func weeklyOverviewSeparatesOverdueUpcomingAndReviewsWithoutDuplication() {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let course = Course(name: "Microeconomics", code: "ECO")
+        let deck = StudyDeck(title: "Elasticity", course: course)
+        let overdue = AcademicTask(title: "Late essay", dueDate: calendar.date(byAdding: .day, value: -1, to: today) ?? today, priority: .urgent, course: course)
+        let soon = AcademicTask(title: "Problem set", dueDate: calendar.date(byAdding: .day, value: 2, to: today) ?? today, priority: .medium, course: course)
+        let done = AcademicTask(title: "Done", dueDate: today, priority: .urgent, status: .completed, course: course)
+        let card = Flashcard(front: "PED", back: "Elasticity", reviewState: FlashcardReviewState(dueDate: today), deck: deck)
+
+        let overview = TodayDashboardService.makeWeeklyOverview(selectedDate: today, sessions: [], tasks: [soon, done, overdue], flashcards: [card], calendar: calendar, now: today)
+
+        #expect(overview.overdueTasks.map(\.title) == ["Late essay"])
+        #expect(overview.upcomingTasks.map(\.title).contains("Problem set"))
+        #expect(!overview.upcomingTasks.map(\.title).contains("Done"))
+        #expect(overview.dueFlashcards.count == 1)
+    }
+
+    @Test func weeklyOverviewEmptyStateHasNoEvents() {
+        let overview = TodayDashboardService.makeWeeklyOverview(selectedDate: .now, sessions: [], tasks: [], flashcards: [])
+
+        #expect(!overview.hasEvents)
+        #expect(overview.days.count == 7)
+        #expect(overview.nextSession == nil)
+    }
+
+    @Test func navigationStateClearsCourseDetailWhenChangingSections() {
+        let navigation = AppNavigationState()
+        let course = Course(name: "Computing", code: "CS")
+
+        navigation.openCourse(course, tab: .materials)
+        #expect(navigation.selectedSection == .classes)
+        #expect(navigation.openedCourseID == course.id)
+        #expect(navigation.requestedCourseTab == .materials)
+
+        navigation.select(.study)
+        #expect(navigation.selectedSection == .study)
+        #expect(navigation.openedCourseID == nil)
+        #expect(navigation.requestedCourseTab == nil)
+    }
+
     @Test func priorityTasksSortByPriorityThenDueDate() {
         let now = Date()
         let low = AcademicTask(title: "Low", dueDate: now, priority: .low)
@@ -192,6 +252,87 @@ struct UniSaverTests {
         let ordered = TodayDashboardService.priorityOrderedTasks([task])
 
         #expect(ordered.isEmpty)
+    }
+
+    @Test func calendarImportGroupsRecurringCourseOccurrences() {
+        let calendar = Calendar(identifier: .gregorian)
+        let first = calendar.date(from: DateComponents(year: 2026, month: 10, day: 5, hour: 9)) ?? Date()
+        let second = calendar.date(from: DateComponents(year: 2026, month: 10, day: 12, hour: 9)) ?? Date()
+        let events = [
+            CalendarImportEvent(title: "Business Law I BL101", startDate: first, endDate: first.addingTimeInterval(5400), location: "B201", notes: "Professor: Martin"),
+            CalendarImportEvent(title: "Business Law I BL101", startDate: second, endDate: second.addingTimeInterval(5400), location: "B201", notes: "Professor: Martin")
+        ]
+
+        let proposals = CalendarOrganizationAnalyzer.proposals(for: events, courses: [], existingSessions: [])
+
+        #expect(proposals.count == 1)
+        #expect(proposals.first?.action == .createCourse)
+        #expect(proposals.first?.proposedCode == "BL101")
+        #expect(proposals.first?.proposedRoom == "B201")
+        #expect(proposals.first?.events.count == 2)
+    }
+
+    @Test func icsParserRespectsUTCAndTZIDDates() throws {
+        let text = """
+        BEGIN:VCALENDAR
+        BEGIN:VEVENT
+        SUMMARY:UTC Session
+        DTSTART:20260115T090000Z
+        DTEND:20260115T100000Z
+        END:VEVENT
+        BEGIN:VEVENT
+        SUMMARY:Casablanca Session
+        DTSTART;TZID=Africa/Casablanca:20260715T090000
+        DTEND;TZID=Africa/Casablanca:20260715T100000
+        END:VEVENT
+        END:VCALENDAR
+        """
+
+        let parsed = CalendarICSParser.parse(text, defaultFloatingTimeZone: TimeZone(identifier: "Europe/Madrid")!)
+
+        #expect(parsed.errors.isEmpty)
+        #expect(parsed.events.count == 2)
+        #expect(parsed.events[0].sourceTimeZoneIdentifier == "UTC")
+        #expect(parsed.events[1].sourceTimeZoneIdentifier == "Africa/Casablanca")
+        #expect(parsed.events[1].startDate != parsed.events[0].startDate)
+    }
+
+    @Test func icsParserUsesExplicitFloatingSourceTimeZone() throws {
+        let text = """
+        BEGIN:VCALENDAR
+        BEGIN:VEVENT
+        SUMMARY:Floating Session
+        DTSTART:20260115T090000
+        DTEND:20260115T100000
+        END:VEVENT
+        END:VCALENDAR
+        """
+
+        let madrid = CalendarICSParser.parse(text, defaultFloatingTimeZone: TimeZone(identifier: "Europe/Madrid")!)
+        let casablanca = CalendarICSParser.parse(text, defaultFloatingTimeZone: TimeZone(identifier: "Africa/Casablanca")!)
+
+        #expect(madrid.events.first?.isFloatingTime == true)
+        #expect(casablanca.events.first?.isFloatingTime == true)
+        #expect(madrid.events.first?.startDate != casablanca.events.first?.startDate)
+    }
+
+    @Test @MainActor func organizingExistingUnfiledSessionsKeepsSessionIdentity() throws {
+        let container = try inMemoryContainer()
+        let context = ModelContext(container)
+        let start = Date()
+        let session = ClassSession(number: 1, title: "Data Structures CS201", date: start, startTime: start, endTime: start.addingTimeInterval(3600), room: "Lab 2")
+        context.insert(session)
+        try context.save()
+
+        let proposals = CalendarOrganizationAnalyzer.proposals(for: .existingSessions([session]), courses: [], existingSessions: [session])
+        try CalendarOrganizationAnalyzer.organizeExistingSessions(proposals, courses: [], existingSessions: [session], in: context)
+
+        let savedSessions = try context.fetch(FetchDescriptor<ClassSession>())
+        let savedCourses = try context.fetch(FetchDescriptor<Course>())
+        #expect(savedSessions.count == 1)
+        #expect(savedSessions.first?.id == session.id)
+        #expect(savedSessions.first?.course?.name == "Data Structures")
+        #expect(savedCourses.count == 1)
     }
 
     @Test func dashboardCalculatesProgressPerCourse() {
@@ -625,9 +766,773 @@ struct UniSaverTests {
         #expect(first.resource?.id == resource.id)
     }
 
+    @Test func flashcardBulkParserAcceptsChatGPTFormat() {
+        let input = """
+        FLASHCARD
+        Front: What is price elasticity of demand?
+        Back: The responsiveness of quantity demanded to a change in price.
+        Hint: Think percentage changes.
+        Explanation: PED = % change in quantity demanded / % change in price.
+        Tags: economics, elasticity
+        ---
+        FLASHCARD
+        Front: What does |PED| > 1 mean?
+        Back: Demand is elastic.
+        Tags: economics, elasticity
+        """
+
+        let result = FlashcardBulkParser.parse(input)
+
+        #expect(result.cards.count == 2)
+        #expect(result.cards.allSatisfy { $0.isValid })
+        #expect(result.cards.first?.tags == ["economics", "elasticity"])
+    }
+
+    @Test func flashcardBulkParserHandlesTwentyFiveCardsAndMultilineFields() {
+        let blocks = (1...25).map { index in
+            """
+            FLASHCARD
+            Front: Concept \(index)
+            Back: First line \(index)
+            second line \(index)
+            Hint: Hint \(index)
+            Tags: demo, card\(index)
+            """
+        }
+        let result = FlashcardBulkParser.parse(blocks.joined(separator: "\n---\n"))
+
+        #expect(result.cards.count == 25)
+        #expect(result.cards.allSatisfy { $0.isValid })
+        #expect(result.cards[0].back.contains("second line 1"))
+        #expect(result.cards[0].sourceLine == 1)
+        #expect(result.cards[1].sourceLine > result.cards[0].sourceLine)
+    }
+
+    @Test func flashcardBulkParserReportsMissingFieldsAndDuplicates() {
+        let input = """
+        FLASHCARD
+        Front: Elasticity
+        ---
+        FLASHCARD
+        Front: Elasticity
+        Back: Duplicate front
+        """
+
+        let result = FlashcardBulkParser.parse(input)
+
+        #expect(result.cards.first?.errors.contains("Back is required.") == true)
+        #expect(result.duplicateFronts.contains("elasticity"))
+        #expect(result.cards.first?.sourceLine == 1)
+    }
+
+    @Test func spacedRepetitionSchedulerIsDeterministicAndNeverPastDue() {
+        let reviewedAt = Date(timeIntervalSince1970: 1_800_000_000)
+        let scheduler = SimpleSpacedRepetitionScheduler()
+        let state = FlashcardReviewState(dueDate: reviewedAt, interval: 86_400, ease: 2.3, repetitions: 1)
+
+        for rating in FlashcardRating.allCases {
+            let first = scheduler.schedule(state: state, rating: rating, reviewedAt: reviewedAt, calendar: .current)
+            let second = scheduler.schedule(state: state, rating: rating, reviewedAt: reviewedAt, calendar: .current)
+            #expect(first == second)
+            #expect(first.dueDate >= reviewedAt)
+        }
+    }
+
+    @MainActor
+    @Test func createsDeckAndFlashcardInSwiftData() throws {
+        let container = try inMemoryContainer()
+        let context = ModelContext(container)
+        let course = Course(name: "Microeconomics", code: "ECO")
+        let deck = StudyDeck(title: "Elasticity", course: course)
+        let card = Flashcard(front: "Front", back: "Back", deck: deck)
+        deck.cards.append(card)
+        context.insert(course)
+        context.insert(deck)
+        context.insert(card)
+        try context.save()
+
+        let savedDeck = try #require(try context.fetch(FetchDescriptor<StudyDeck>()).first)
+        #expect(savedDeck.cards.count == 1)
+        #expect(savedDeck.course?.name == "Microeconomics")
+    }
+
+    @Test func quizParserAndScoringSupportQCM() {
+        let input = """
+        QUESTION
+        Type: Multiple Choice
+        Prompt: If demand is elastic, what happens when price decreases?
+        A: Total revenue decreases.
+        B: Total revenue increases.
+        Correct: B
+        Explanation: With elastic demand, quantity rises proportionally more than price falls.
+        Tags: economics, elasticity
+        """
+
+        let parsed = QuizBulkParser.parse(input)
+        #expect(parsed.count == 1)
+        #expect(parsed.first?.isValid == true)
+        let question = QuizQuestion(
+            prompt: parsed[0].prompt,
+            type: parsed[0].type,
+            choices: parsed[0].choices,
+            correctAnswers: parsed[0].correctAnswers,
+            explanation: parsed[0].explanation
+        )
+        let score = QuizScoringService.score(questions: [question], answers: ["B"])
+        #expect(score.score == 1)
+        #expect(score.maximum == 1)
+    }
+
+    @Test func quizParserAndScoringSupportMultipleSelectTrueFalseAndShortAnswer() {
+        let input = """
+        QUESTION
+        Type: Multiple Select
+        Prompt: Select demand shifters.
+        A: Income
+        B: Weather
+        C: Price of this good
+        Correct: A, B
+        Explanation: Income and weather can shift demand.
+        ---
+        QUESTION
+        Type: True/False
+        Prompt: A binding constraint is active.
+        Correct: True
+        Explanation: Binding means active at the solution.
+        ---
+        QUESTION
+        Type: Short Answer
+        Prompt: Name a Python collection type.
+        Correct: list
+        Explanation: Lists store ordered values.
+        """
+
+        let parsed = QuizBulkParser.parse(input)
+        #expect(parsed.count == 3)
+        #expect(parsed.map(\.type) == [.multipleSelect, .trueFalse, .shortAnswer])
+        #expect(parsed.allSatisfy { $0.isValid })
+
+        let questions = parsed.enumerated().map { index, parsed in
+            QuizQuestion(prompt: parsed.prompt, type: parsed.type, choices: parsed.choices, correctAnswers: parsed.correctAnswers, explanation: parsed.explanation, position: index)
+        }
+        let score = QuizScoringService.score(questions: questions, answers: ["A, B", "True", "list"])
+        #expect(score.score == 3)
+        #expect(score.maximum == 3)
+    }
+
+    @MainActor
+    @Test func demoWorkspaceIncludesStudyStudioData() throws {
+        let container = try inMemoryContainer()
+        let context = ModelContext(container)
+
+        DemoWorkspaceService.loadDemoWorkspace(in: context)
+        DemoWorkspaceService.loadDemoWorkspace(in: context)
+
+        let decks = try context.fetch(FetchDescriptor<StudyDeck>())
+        let cards = try context.fetch(FetchDescriptor<Flashcard>())
+        let quizzes = try context.fetch(FetchDescriptor<Quiz>())
+        let attempts = try context.fetch(FetchDescriptor<QuizAttempt>())
+
+        #expect(decks.count >= 4)
+        #expect(cards.count >= 60)
+        #expect(cards.contains { $0.reviewState.dueDate <= .now })
+        #expect(quizzes.count >= 2)
+        #expect(attempts.contains { $0.isCompleted })
+        #expect(decks.map(\.title).count == Set(decks.map(\.title)).count)
+    }
+
+    @Test func understandingPracticeHelpLevelTracksStrongestHelpUsed() {
+        #expect(UnderstandingPracticeService.strongestHelpLevel(current: .none, didRevealHint: false, revealedStepCount: 0, didRevealSolution: false) == .none)
+        #expect(UnderstandingPracticeService.strongestHelpLevel(current: .none, didRevealHint: true, revealedStepCount: 0, didRevealSolution: false) == .hint)
+        #expect(UnderstandingPracticeService.strongestHelpLevel(current: .hint, didRevealHint: true, revealedStepCount: 2, didRevealSolution: false) == .steps)
+        #expect(UnderstandingPracticeService.strongestHelpLevel(current: .steps, didRevealHint: true, revealedStepCount: 2, didRevealSolution: true) == .solution)
+    }
+
+    @Test func understandingProgressUsesAutonomousRedoResult() {
+        let independent = UnderstandingPracticeAttempt(exercisePrompt: "Explain elasticity", subject: "Microeconomics", autonomousResult: .independent)
+        let partial = UnderstandingPracticeAttempt(exercisePrompt: "Solve derivative", subject: "Math", autonomousResult: .partial)
+        let blocked = UnderstandingPracticeAttempt(exercisePrompt: "Write loop", subject: "Computing", autonomousResult: .couldNotRedo)
+        let draft = UnderstandingPracticeAttempt(exercisePrompt: "Draft", subject: "General", autonomousResult: .notChecked)
+
+        let summary = UnderstandingPracticeService.progressSummary(for: [independent, partial, blocked, draft])
+
+        #expect(summary.attemptCount == 4)
+        #expect(summary.independentCount == 1)
+        #expect(summary.partialCount == 1)
+        #expect(summary.completedCheckCount == 2)
+        #expect(abs(summary.averageRedoProgress - ((1 + 0.55 + 0) / 3)) < 0.0001)
+    }
+
+    @MainActor
+    @Test func understandingPracticeAttemptPersistsCourseHelpAndTransferResult() throws {
+        let container = try inMemoryContainer()
+        let context = ModelContext(container)
+        let course = Course(name: "Microeconomics", code: "ECO")
+        let attempt = UnderstandingPracticeAttempt(
+            exercisePrompt: "Use elasticity to explain revenue.",
+            subject: "Microeconomics",
+            studentAttempt: "I compare percentage changes.",
+            hint: "Name the unknown.",
+            explanationSteps: ["Identify variables", "Apply formula"],
+            solution: "Demo solution",
+            transferQuestion: "Change the price movement.",
+            transferAnswer: "I can redo the method.",
+            suggestedTransferAnswer: "Same method with changed values.",
+            helpLevelUsed: .steps,
+            autonomousResult: .partial,
+            assistanceSource: "Demo mode",
+            course: course
+        )
+        context.insert(course)
+        context.insert(attempt)
+        try context.save()
+
+        let saved = try #require(try context.fetch(FetchDescriptor<UnderstandingPracticeAttempt>()).first)
+        #expect(saved.course?.id == course.id)
+        #expect(saved.helpLevelUsed == .steps)
+        #expect(saved.autonomousResult == .partial)
+        #expect(saved.explanationSteps.count == 2)
+        #expect(saved.transferAnswer == "I can redo the method.")
+    }
+
+    @MainActor
+    @Test func demoUnderstandingProviderIsExplicitlyMarkedAsDemo() async throws {
+        let provider = DemoUnderstandingAssistanceProvider()
+        let assistance = try await provider.assistance(for: "Solve 2x = 10", subject: "Math", course: nil)
+
+        #expect(assistance.isDemo)
+        #expect(assistance.sourceLabel == "Demo mode")
+        #expect(!assistance.hint.isEmpty)
+        #expect(!assistance.explanationSteps.isEmpty)
+        #expect(assistance.solution.contains("Demo guidance"))
+    }
+
+    @MainActor
+    @Test func audioRecorderReportsDeniedPermissionWithoutCreatingModel() throws {
+        let container = try inMemoryContainer()
+        let context = ModelContext(container)
+        let checker = FakeMicrophonePermissionChecker(status: .denied)
+        let recorder = CourseAudioRecorder(
+            permissionChecker: checker,
+            fileStore: AcademicFileStore(rootDirectory: temporaryDirectory("DeniedRecorder"))
+        )
+
+        recorder.requestPermissionAndStart(title: "Denied")
+
+        guard case .denied(let message) = recorder.state else {
+            Issue.record("Expected denied recorder state")
+            return
+        }
+        #expect(message.contains("Microphone"))
+        #expect(try context.fetch(FetchDescriptor<CourseRecording>()).isEmpty)
+    }
+
+    @MainActor
+    @Test func audioRecorderRequestsUndeterminedPermissionAndHandlesDenial() async throws {
+        let checker = FakeMicrophonePermissionChecker(status: .notDetermined, requestResult: false)
+        let recorder = CourseAudioRecorder(
+            permissionChecker: checker,
+            fileStore: AcademicFileStore(rootDirectory: temporaryDirectory("UndeterminedRecorder"))
+        )
+
+        recorder.requestPermissionAndStart(title: "Lecture")
+        try? await Task.sleep(for: .milliseconds(50))
+
+        #expect(checker.requestCount == 1)
+        guard case .denied = recorder.state else {
+            Issue.record("Expected denied recorder state after rejected permission prompt")
+            return
+        }
+    }
+
+    @MainActor
+    @Test func audioRecorderStopIsIdempotentWhenIdle() {
+        let recorder = CourseAudioRecorder(
+            permissionChecker: FakeMicrophonePermissionChecker(status: .denied),
+            fileStore: AcademicFileStore(rootDirectory: temporaryDirectory("IdleRecorder"))
+        )
+
+        recorder.stop()
+        recorder.stop()
+
+        guard case .idle = recorder.state else {
+            Issue.record("Stopping an idle recorder should keep it idle")
+            return
+        }
+    }
+
+    @MainActor
+    @Test func recordingPersistenceCreatesSingleLinkedRecordingAndDeletesFile() throws {
+        let container = try inMemoryContainer()
+        let context = ModelContext(container)
+        let root = temporaryDirectory("RecordingPersistence")
+        let fileStore = AcademicFileStore(rootDirectory: root)
+        let prepared = try fileStore.prepareRecordingDestination(originalTitle: "Lecture")
+        try Data("audio bytes".utf8).write(to: prepared.url, options: .atomic)
+        let saved = try fileStore.savedRecording(from: prepared, duration: 42)
+        let course = Course(name: "Microeconomics", code: "ECO")
+        let chapter = Chapter(number: 1, title: "Elasticity", order: 1, course: course)
+        let start = Date()
+        let session = ClassSession(number: 1, title: "Lecture", date: start, startTime: start, endTime: start.addingTimeInterval(3600), course: course, chapter: chapter)
+        let note = StudyNote(title: "Lecture notes", course: course, chapter: chapter, session: session)
+        context.insert(course)
+        context.insert(chapter)
+        context.insert(session)
+        context.insert(note)
+        try context.save()
+
+        let recording = try RecordingPersistenceService.createRecording(
+            title: "Lecture audio",
+            savedRecording: saved,
+            course: course,
+            chapter: chapter,
+            session: session,
+            note: note,
+            in: context,
+            fileStore: fileStore
+        )
+
+        #expect(try context.fetch(FetchDescriptor<CourseRecording>()).count == 1)
+        #expect(recording.course?.id == course.id)
+        #expect(recording.chapter?.id == chapter.id)
+        #expect(recording.session?.id == session.id)
+        #expect(recording.note?.id == note.id)
+        #expect(try fileStore.url(for: saved.storedRelativePath).lastPathComponent == saved.storedRelativePath)
+
+        RecordingPersistenceService.deleteRecording(recording, in: context, fileStore: fileStore)
+        #expect(try context.fetch(FetchDescriptor<CourseRecording>()).isEmpty)
+        #expect(throws: AcademicFileStoreError.fileMissing) {
+            _ = try fileStore.url(for: saved.storedRelativePath)
+        }
+        try? FileManager.default.removeItem(at: root)
+    }
+
+    @MainActor
+    @Test func sessionTypeRawValueFallbackRepairsMissingAndUnknownValues() throws {
+        let container = try inMemoryContainer()
+        let context = ModelContext(container)
+        let course = Course(name: "Legacy Course", code: "LEG")
+        let missing = ClassSession(number: 1, title: "Missing", date: .now, startTime: .now, endTime: .now.addingTimeInterval(3600), course: course)
+        let unknown = ClassSession(number: 2, title: "Unknown", date: .now, startTime: .now, endTime: .now.addingTimeInterval(3600), course: course)
+        let valid = ClassSession(number: 3, title: "Lab", date: .now, startTime: .now, endTime: .now.addingTimeInterval(3600), sessionType: .lab, course: course)
+        missing.sessionTypeRawValue = nil
+        unknown.sessionTypeRawValue = "old-bad-value"
+        context.insert(course)
+        context.insert(missing)
+        context.insert(unknown)
+        context.insert(valid)
+        try context.save()
+
+        try PersistenceController.repairSessionTypes(in: context)
+
+        #expect(missing.sessionType == .lecture)
+        #expect(unknown.sessionType == .lecture)
+        #expect(valid.sessionType == .lab)
+        #expect(missing.course?.id == course.id)
+        #expect(valid.course?.id == course.id)
+    }
+
+    @MainActor
+    @Test func sessionTypeRepairIsIdempotentAndDoesNotDuplicateSessions() throws {
+        let container = try inMemoryContainer()
+        let context = ModelContext(container)
+        let course = Course(name: "Microeconomics", code: "ECO")
+        let session = ClassSession(number: 1, title: "Seminar", date: .now, startTime: .now, endTime: .now.addingTimeInterval(3600), sessionType: .seminar, course: course)
+        context.insert(course)
+        context.insert(session)
+        try context.save()
+
+        try PersistenceController.repairSessionTypes(in: context)
+        try PersistenceController.repairSessionTypes(in: context)
+
+        let sessions = try context.fetch(FetchDescriptor<ClassSession>())
+        #expect(sessions.count == 1)
+        #expect(sessions.first?.sessionType == .seminar)
+        #expect(sessions.first?.sessionTypeRawValue == ClassSessionType.seminar.rawValue)
+    }
+
+    @Test func sessionTypeComputedPropertyUsesStableRawValue() {
+        let session = ClassSession(number: 1, title: "Tutorial", date: .now, startTime: .now, endTime: .now.addingTimeInterval(3600))
+        session.sessionType = .tutorial
+        #expect(session.sessionTypeRawValue == ClassSessionType.tutorial.rawValue)
+        #expect(session.sessionType == .tutorial)
+
+        session.sessionTypeRawValue = nil
+        #expect(session.sessionType == .lecture)
+
+        session.sessionTypeRawValue = "unknown"
+        #expect(session.sessionType == .lecture)
+    }
+
+    @MainActor
+    @Test func migrationPlanOpensFreshStoreAndMigratesV2StoreToCurrentSchema() throws {
+        let storeName = "MigrationRegression-\(UUID().uuidString)"
+        let legacySchema = Schema(versionedSchema: UniSaverSchemaV2.self)
+        let legacyConfiguration = ModelConfiguration(storeName, schema: legacySchema)
+        let legacyContainer = try ModelContainer(
+            for: legacySchema,
+            configurations: [legacyConfiguration]
+        )
+        let legacyContext = ModelContext(legacyContainer)
+        let course = UniSaverSchemaV2.Course()
+        course.name = "Migration Economics"
+        course.code = "MIG"
+        let deck = UniSaverSchemaV2.StudyDeck()
+        deck.title = "Legacy Deck"
+        deck.course = course
+        legacyContext.insert(course)
+        legacyContext.insert(deck)
+        try legacyContext.save()
+
+        #expect(!legacySchema.entities.contains { $0.name == "UnderstandingPracticeAttempt" })
+        #expect(PersistenceController.schema.entities.contains { $0.name == "UnderstandingPracticeAttempt" })
+
+        let currentConfiguration = ModelConfiguration(storeName, schema: PersistenceController.schema)
+        let currentContainer = try ModelContainer(
+            for: PersistenceController.schema,
+            migrationPlan: UniSaverMigrationPlan.self,
+            configurations: [currentConfiguration]
+        )
+        let currentContext = ModelContext(currentContainer)
+        let courses = try currentContext.fetch(FetchDescriptor<Course>())
+        let decks = try currentContext.fetch(FetchDescriptor<StudyDeck>())
+        let checks = try currentContext.fetch(FetchDescriptor<UnderstandingPracticeAttempt>())
+
+        #expect(courses.contains { $0.name == "Migration Economics" })
+        #expect(decks.contains { $0.title == "Legacy Deck" })
+        #expect(checks.isEmpty)
+
+        let freshName = "FreshCurrent-\(UUID().uuidString)"
+        let freshConfiguration = ModelConfiguration(freshName, schema: PersistenceController.schema)
+        let freshContainer = try ModelContainer(
+            for: PersistenceController.schema,
+            migrationPlan: UniSaverMigrationPlan.self,
+            configurations: [freshConfiguration]
+        )
+        let freshContext = ModelContext(freshContainer)
+        #expect(try freshContext.fetch(FetchDescriptor<Course>()).isEmpty)
+        #expect(try freshContext.fetch(FetchDescriptor<UnderstandingPracticeAttempt>()).isEmpty)
+    }
+
+    @MainActor
+    @Test func historicalStoreCopyOpensWithCurrentSchemaWhenProvided() throws {
+        guard let path = ProcessInfo.processInfo.environment["UNISAVER_HISTORICAL_STORE_PATH"], !path.isEmpty else {
+            return
+        }
+
+        let storeURL = URL(filePath: path)
+        let configuration = ModelConfiguration("HistoricalMigrationProbe", schema: PersistenceController.schema, url: storeURL)
+        let container = try ModelContainer(
+            for: PersistenceController.schema,
+            migrationPlan: UniSaverMigrationPlan.self,
+            configurations: [configuration]
+        )
+        let context = ModelContext(container)
+
+        let counts = [
+            "courses": try context.fetchCount(FetchDescriptor<Course>()),
+            "chapters": try context.fetchCount(FetchDescriptor<Chapter>()),
+            "sessions": try context.fetchCount(FetchDescriptor<ClassSession>()),
+            "resources": try context.fetchCount(FetchDescriptor<AcademicResource>()),
+            "notes": try context.fetchCount(FetchDescriptor<StudyNote>()),
+            "recordings": try context.fetchCount(FetchDescriptor<CourseRecording>()),
+            "decks": try context.fetchCount(FetchDescriptor<StudyDeck>()),
+            "flashcards": try context.fetchCount(FetchDescriptor<Flashcard>())
+        ]
+
+        print("HISTORICAL_MIGRATION_COUNTS \(counts)")
+        #expect(counts.values.allSatisfy { $0 >= 0 })
+    }
+
+    @Test func currentSchemaUsesCurrentAppWorkspaceModel() throws {
+        let v2Workspace = try #require(UniSaverSchemaV2.models.first { String(describing: $0) == "AppWorkspace" })
+        let v4Workspace = try #require(UniSaverSchemaV4.models.first { String(describing: $0) == "AppWorkspace" })
+        let v2Recording = try #require(UniSaverSchemaV2.models.first { String(describing: $0) == "CourseRecording" })
+        let v4Recording = try #require(UniSaverSchemaV4.models.first { String(describing: $0) == "CourseRecording" })
+        let v5Recording = try #require(UniSaverSchemaV5.models.first { String(describing: $0) == "CourseRecording" })
+        let v6Recording = try #require(UniSaverSchemaV6.models.first { String(describing: $0) == "CourseRecording" })
+        let currentWorkspace = PersistenceController.schema.entities.first { $0.name == "AppWorkspace" }
+
+        #expect(String(reflecting: v2Workspace) == "UniSaver.UniSaverSchemaV2.AppWorkspace")
+        #expect(String(reflecting: v4Workspace) == "UniSaver.AppWorkspace")
+        #expect(String(reflecting: v2Recording) == "UniSaver.UniSaverSchemaV2.CourseRecording")
+        #expect(String(reflecting: v4Recording) == "UniSaver.CourseRecording")
+        #expect(String(reflecting: v5Recording) == "UniSaver.UniSaverSchemaV5.CourseRecording")
+        #expect(String(reflecting: v6Recording) == "UniSaver.CourseRecording")
+        #expect(currentWorkspace != nil)
+        #expect(Schema(versionedSchema: UniSaverSchemaV2.self).entities.count == 19)
+        #expect(Schema(versionedSchema: UniSaverSchemaV4.self).entities.count == 20)
+        #expect(Schema(versionedSchema: UniSaverSchemaV5.self).entities.count == 22)
+        #expect(Schema(versionedSchema: UniSaverSchemaV6.self).entities.count == 22)
+        #expect(PersistenceController.schema.entities.contains { $0.name == "LibraryFolder" })
+        #expect(PersistenceController.schema.entities.contains { $0.name == "LibraryItem" })
+    }
+
+    @Test func noteNavigationGuardBlocksSectionChangesUntilResolved() {
+        let navigation = AppNavigationState()
+        navigation.select(.classes)
+        navigation.noteNavigationGuard = { _ in false }
+
+        navigation.requestSelect(.today)
+        #expect(navigation.selectedSection == .classes)
+
+        navigation.noteNavigationGuard = { _ in true }
+        navigation.requestSelect(.today)
+        #expect(navigation.selectedSection == .today)
+    }
+
+    @MainActor
+    @Test func libraryFolderDeletionKeepsUnderlyingNoteUnfiled() throws {
+        let container = try inMemoryContainer()
+        let context = ModelContext(container)
+        let note = StudyNote(title: "Legacy note")
+        let folder = LibraryFolder(name: "Week 1")
+        let assignment = LibraryItem(itemKind: .note, itemID: note.id.uuidString, folder: folder)
+        context.insert(note)
+        context.insert(folder)
+        context.insert(assignment)
+        try context.save()
+
+        let savedNotes = try context.fetch(FetchDescriptor<StudyNote>())
+        #expect(savedNotes.count == 1)
+        #expect(try context.fetch(FetchDescriptor<LibraryItem>()).first?.folder?.name == "Week 1")
+
+        assignment.folder = nil
+        context.delete(folder)
+        try context.save()
+
+        let notesAfterDelete = try context.fetch(FetchDescriptor<StudyNote>())
+        let assignmentsAfterDelete = try context.fetch(FetchDescriptor<LibraryItem>())
+        #expect(notesAfterDelete.map(\.title) == ["Legacy note"])
+        #expect(assignmentsAfterDelete.count == 1)
+        #expect(assignmentsAfterDelete.first?.folder == nil)
+        #expect(try context.fetch(FetchDescriptor<LibraryFolder>()).isEmpty)
+    }
+
+    @MainActor
+    @Test func recordingTranscriptionPersistsOnSingleAudioRecordingWithoutCreatingStudyNote() throws {
+        let container = try inMemoryContainer()
+        let context = ModelContext(container)
+        let course = Course(name: "Algorithms", code: "CS")
+        let session = ClassSession(number: 1, title: "Graphs", date: .now, startTime: .now, endTime: .now.addingTimeInterval(3600), course: course)
+        let recording = CourseRecording(title: "Graphs audio", storedRelativePath: "graphs.m4a", duration: 90, course: course, session: session, notes: "Graph traversal")
+        context.insert(course)
+        context.insert(session)
+        context.insert(recording)
+        try context.save()
+
+        let savedRecordings = try context.fetch(FetchDescriptor<CourseRecording>())
+        let savedNotes = try context.fetch(FetchDescriptor<StudyNote>())
+        #expect(savedRecordings.count == 1)
+        #expect(savedRecordings.first?.notes == "Graph traversal")
+        #expect(savedNotes.isEmpty)
+    }
+
+    @Test func appleSpeechTranscriptDoesNotOverwriteExistingRecordingNotes() {
+        let merged = NativeSpeechTranscriptionService.mergedNotes("Manual note from class.", transcript: "Generated transcript")
+        #expect(merged.contains("Manual note from class."))
+        #expect(merged.contains("Apple Speech Transcript"))
+        #expect(merged.contains("Generated transcript"))
+
+        let replaced = NativeSpeechTranscriptionService.mergedNotes(merged, transcript: "Updated transcript")
+        #expect(replaced.contains("Manual note from class."))
+        #expect(replaced.contains("Updated transcript"))
+        #expect(!replaced.contains("Generated transcript"))
+    }
+
+    @Test func resourceImportValidationAllowsUnfiledResourceWithoutCourse() {
+        let draft = ResourceImportDraft(
+            fileURL: URL(fileURLWithPath: "/tmp/sample.pdf"),
+            title: "Sample",
+            resourceDescription: "",
+            course: nil,
+            chapter: nil,
+            session: nil,
+            tags: []
+        )
+
+        let validation = ResourceImportValidation.validate(draft)
+
+        #expect(validation.isValid)
+        #expect(validation.courseError == nil)
+    }
+
+    @Test func calendarICSParserKeepsValidEventsAndReportsInvalidLines() throws {
+        let ics = """
+        BEGIN:VCALENDAR
+        BEGIN:VEVENT
+        SUMMARY:Microeconomics lecture
+        DTSTART:20260925T090000Z
+        DTEND:20260925T103000Z
+        LOCATION:Room 201
+        RRULE:FREQ=WEEKLY;COUNT=3
+        END:VEVENT
+        BEGIN:VEVENT
+        SUMMARY:Broken event
+        END:VEVENT
+        END:VCALENDAR
+        """
+
+        let parsed = CalendarICSParser.parse(ics)
+
+        let event = try #require(parsed.events.first)
+        #expect(parsed.events.count == 1)
+        #expect(event.title == "Microeconomics lecture")
+        #expect(event.location == "Room 201")
+        #expect(event.recurrenceNote?.contains("FREQ=WEEKLY") == true)
+        #expect(parsed.errors.contains { $0.message.contains("Date de début") })
+    }
+
+    @MainActor
+    @Test func moodleSyncMappingUpdatesWithoutDuplicates() throws {
+        let container = try inMemoryContainer()
+        let context = ModelContext(container)
+        let metadataURL = temporaryDirectory("MoodleMetadata").appending(path: "metadata.json")
+        let metadataStore = MoodleSyncMetadataStore(fileURL: metadataURL)
+        let institutionURL = try #require(URL(string: "https://moodle.example.edu"))
+        let dueDate = Date(timeIntervalSince1970: 1_800_000_000)
+        let courses = [
+            MoodleCourseDTO(id: 10, fullname: "Calculus I", shortname: "MATH101", viewurl: URL(string: "https://moodle.example.edu/course/view.php?id=10"), summary: "Limits", startdate: nil, enddate: nil)
+        ]
+        let events = [
+            MoodleEventDTO(id: 99, name: "Problem set", description: "Week 1", timestart: Int(dueDate.timeIntervalSince1970), timeduration: nil, url: URL(string: "https://moodle.example.edu/mod/assign/view.php?id=99"), courseid: 10, modulename: "assign")
+        ]
+
+        _ = try MoodleSyncService.apply(
+            remoteCourses: courses,
+            remoteEvents: events,
+            siteName: "Example Moodle",
+            userDisplayName: "Student",
+            availableFunctions: ["core_enrol_get_users_courses", "core_calendar_get_action_events_by_courses"],
+            institutionURL: institutionURL,
+            context: context,
+            metadataStore: metadataStore
+        )
+        let secondSummary = try MoodleSyncService.apply(
+            remoteCourses: [MoodleCourseDTO(id: 10, fullname: "Calculus IA", shortname: "MATH101", viewurl: nil, summary: "Updated", startdate: nil, enddate: nil)],
+            remoteEvents: [MoodleEventDTO(id: 99, name: "Problem set updated", description: "Updated", timestart: Int(dueDate.timeIntervalSince1970), timeduration: nil, url: nil, courseid: 10, modulename: "assign")],
+            siteName: "Example Moodle",
+            userDisplayName: "Student",
+            availableFunctions: ["core_enrol_get_users_courses"],
+            institutionURL: institutionURL,
+            context: context,
+            metadataStore: metadataStore
+        )
+
+        let savedCourses = try context.fetch(FetchDescriptor<Course>())
+        let savedTasks = try context.fetch(FetchDescriptor<AcademicTask>())
+        let metadata = metadataStore.load()
+        #expect(savedCourses.count == 1)
+        #expect(savedCourses.first?.name == "Calculus IA")
+        #expect(savedTasks.count == 1)
+        #expect(savedTasks.first?.title == "Problem set updated")
+        #expect(secondSummary.importedCourseCount == 0)
+        #expect(secondSummary.updatedCourseCount == 1)
+        #expect(secondSummary.importedTaskCount == 0)
+        #expect(secondSummary.updatedTaskCount == 1)
+        #expect(metadata.records.filter { $0.kind == .course }.count == 1)
+        #expect(metadata.records.filter { $0.kind == .task }.count == 1)
+    }
+
+    @Test func moodleAccessDeniedSurfacesReadableError() {
+        let error = MoodleClientError.permissionDenied("Access control exception")
+        #expect(error.localizedDescription.contains("Moodle refused access"))
+        #expect(MoodleClientError.missingAuthorizedToken.localizedDescription.contains("Connexion indisponible"))
+    }
+
+    @Test func existingCourseContentCanMoveBetweenChaptersWithoutDuplication() throws {
+        let container = try inMemoryContainer()
+        let context = ModelContext(container)
+        let course = Course(name: "Accounting II", code: "ACC2")
+        let firstChapter = Chapter(number: 1, title: "Financial statements", order: 1, course: course)
+        let secondChapter = Chapter(number: 2, title: "Inventory", order: 2, course: course)
+        let start = Date()
+        let session = ClassSession(number: 1, title: "Lecture", date: start, startTime: start, endTime: start.addingTimeInterval(3600), course: course)
+        let resource = AcademicResource(
+            title: "Syllabus",
+            resourceKind: .document,
+            originalFileName: "Accounting II Syllabus.docx",
+            storedRelativePath: "Resources/syllabus.docx",
+            fileExtension: "docx",
+            course: course
+        )
+        let note = StudyNote(title: "Chapter note", course: course)
+        let quiz = Quiz(title: "Practice quiz", course: course)
+
+        context.insert(course)
+        context.insert(firstChapter)
+        context.insert(secondChapter)
+        context.insert(session)
+        context.insert(resource)
+        context.insert(note)
+        context.insert(quiz)
+        try context.save()
+
+        session.chapter = firstChapter
+        resource.chapter = firstChapter
+        note.chapter = firstChapter
+        quiz.chapter = firstChapter
+        try context.save()
+
+        resource.chapter = secondChapter
+        note.chapter = secondChapter
+        quiz.chapter = secondChapter
+        try context.save()
+
+        let savedResources = try context.fetch(FetchDescriptor<AcademicResource>())
+        let savedNotes = try context.fetch(FetchDescriptor<StudyNote>())
+        let savedQuizzes = try context.fetch(FetchDescriptor<Quiz>())
+        let savedSessions = try context.fetch(FetchDescriptor<ClassSession>())
+
+        #expect(savedResources.count == 1)
+        #expect(savedResources.first?.id == resource.id)
+        #expect(savedResources.first?.chapter?.id == secondChapter.id)
+        #expect(savedNotes.count == 1)
+        #expect(savedNotes.first?.chapter?.id == secondChapter.id)
+        #expect(savedQuizzes.count == 1)
+        #expect(savedQuizzes.first?.chapter?.id == secondChapter.id)
+        #expect(savedSessions.count == 1)
+        #expect(savedSessions.first?.chapter?.id == firstChapter.id)
+    }
+
+    @Test func sessionStreakUsesOnlyFinishedAttendedSessions() throws {
+        let calendar = Calendar(identifier: .gregorian)
+        let now = try #require(calendar.date(from: DateComponents(year: 2026, month: 10, day: 6, hour: 12)))
+        let yesterday = try #require(calendar.date(byAdding: .day, value: -1, to: now))
+        let twoDaysAgo = try #require(calendar.date(byAdding: .day, value: -2, to: now))
+        let threeDaysAgo = try #require(calendar.date(byAdding: .day, value: -3, to: now))
+
+        let attendedYesterday = ClassSession(number: 1, title: "Yesterday", date: yesterday, startTime: yesterday, endTime: yesterday.addingTimeInterval(3_600), attendanceStatus: .attended)
+        let attendedTwoDaysAgo = ClassSession(number: 2, title: "Two days ago", date: twoDaysAgo, startTime: twoDaysAgo, endTime: twoDaysAgo.addingTimeInterval(3_600), attendanceStatus: .attended)
+        let missedThreeDaysAgo = ClassSession(number: 3, title: "Missed", date: threeDaysAgo, startTime: threeDaysAgo, endTime: threeDaysAgo.addingTimeInterval(3_600), attendanceStatus: .missed)
+        let futureToday = ClassSession(number: 4, title: "Future", date: now, startTime: now.addingTimeInterval(3_600), endTime: now.addingTimeInterval(7_200), attendanceStatus: .attended)
+
+        let summary = SessionStreakCalculator.summary(
+            from: [attendedYesterday, attendedTwoDaysAgo, missedThreeDaysAgo, futureToday],
+            calendar: calendar,
+            now: now
+        )
+
+        #expect(summary.currentStreak == 2)
+        #expect(summary.completedSessionCount == 2)
+        #expect(summary.recentDays.filter(\.hasCompletedSession).count == 2)
+    }
+
+    @Test func sessionStreakHasHonestEmptyState() {
+        let summary = SessionStreakCalculator.summary(from: [], calendar: .current, now: .now)
+
+        #expect(summary.currentStreak == 0)
+        #expect(summary.completedSessionCount == 0)
+        #expect(summary.recentDays.allSatisfy { !$0.hasCompletedSession })
+    }
+
     private func inMemoryContainer() throws -> ModelContainer {
         let configuration = ModelConfiguration("TestStore", schema: PersistenceController.schema, isStoredInMemoryOnly: true)
         return try ModelContainer(for: PersistenceController.schema, configurations: [configuration])
+    }
+
+    private func temporaryDirectory(_ prefix: String) -> URL {
+        FileManager.default.temporaryDirectory.appending(path: "\(prefix)-\(UUID().uuidString)", directoryHint: .isDirectory)
     }
 
     private func session(_ title: String, course: Course, day: Date, hour: Int) -> ClassSession {
@@ -643,5 +1548,25 @@ struct UniSaverTests {
             return existing.name.trimmingCharacters(in: .whitespacesAndNewlines).localizedLowercase == normalizedName
                 || (!normalizedCode.isEmpty && existing.code.trimmingCharacters(in: .whitespacesAndNewlines).localizedLowercase == normalizedCode)
         }
+    }
+}
+
+private final class FakeMicrophonePermissionChecker: MicrophonePermissionChecking {
+    private let statusValue: AVAuthorizationStatus
+    private let requestResult: Bool
+    private(set) var requestCount = 0
+
+    init(status: AVAuthorizationStatus, requestResult: Bool = false) {
+        self.statusValue = status
+        self.requestResult = requestResult
+    }
+
+    func authorizationStatus() -> AVAuthorizationStatus {
+        statusValue
+    }
+
+    func requestAccess(_ completion: @escaping (Bool) -> Void) {
+        requestCount += 1
+        completion(requestResult)
     }
 }
