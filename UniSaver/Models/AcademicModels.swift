@@ -1047,7 +1047,30 @@ final class Flashcard {
     var position: Int
     var createdAt: Date
     var updatedAt: Date
-    var reviewState: FlashcardReviewState
+
+    /// Backing storage for ``reviewState``.
+    ///
+    /// `FlashcardReviewState` is a composite `Codable` struct containing a
+    /// nested optional enum (`lastRating`). SwiftData's attribute coder cannot
+    /// round-trip that shape (it fails to decode on fetch with
+    /// "Unable to decode this value FlashcardReviewState(...)"), so we persist
+    /// the struct as a JSON blob and expose it through a `@Transient` accessor.
+    /// This mirrors the `ClassSession.sessionType` / `sessionTypeRawValue`
+    /// pattern already used in this schema.
+    var reviewStateData: Data?
+
+    @Transient var reviewState: FlashcardReviewState {
+        get {
+            guard let reviewStateData,
+                  let decoded = try? JSONDecoder().decode(FlashcardReviewState.self, from: reviewStateData) else {
+                return FlashcardReviewState()
+            }
+            return decoded
+        }
+        set {
+            reviewStateData = try? JSONEncoder().encode(newValue)
+        }
+    }
 
     var deck: StudyDeck?
 
@@ -1073,7 +1096,7 @@ final class Flashcard {
         self.position = position
         self.createdAt = createdAt
         self.updatedAt = updatedAt
-        self.reviewState = reviewState
+        self.reviewStateData = try? JSONEncoder().encode(reviewState)
         self.deck = deck
     }
 }
