@@ -21,7 +21,9 @@ enum ClassFilter: String, CaseIterable, Identifiable {
 
 struct ClassesView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(AppNavigationState.self) private var navigation
     @Query(sort: \Course.name) private var courses: [Course]
+    @Query(sort: \ClassSession.startTime) private var sessions: [ClassSession]
     @Query(sort: \Semester.order) private var semesters: [Semester]
     @Binding var quickAddTarget: QuickAddTarget?
 
@@ -29,11 +31,12 @@ struct ClassesView: View {
     @State private var displayMode: ClassDisplayMode = .grid
     @State private var filter: ClassFilter = .active
     @State private var selectedCourse: Course?
-    @State private var openedCourse: Course?
     @State private var selectedSemesterID: UUID?
     @State private var editingCourse: Course?
     @State private var archiveCourse: Course?
     @State private var deleteCourse: Course?
+    @State private var moodleCourseIDs: Set<UUID> = []
+    @State private var showsImportedOrganizer = false
 
     private var filteredCourses: [Course] {
         courses.filter { course in
@@ -63,13 +66,20 @@ struct ClassesView: View {
     var body: some View {
         Group {
             if courses.isEmpty {
-                EmptyStateView(
-                    title: "No classes yet",
-                    message: "Add your first class to start organizing chapters and dated sessions.",
-                    systemImage: "books.vertical",
-                    actionTitle: "New Course",
-                    action: { quickAddTarget = .course(nil) }
-                )
+                VStack(spacing: 14) {
+                    EmptyStateView(
+                        title: "Aucun cours pour l’instant",
+                        message: "Crée ton premier cours ou organise les événements importés depuis Planner.",
+                        systemImage: "books.vertical",
+                        actionTitle: "Nouveau cours",
+                        action: { quickAddTarget = .course(nil) }
+                    )
+                    Button("Organiser les événements importés", systemImage: "wand.and.stars") {
+                        showsImportedOrganizer = true
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(sessions.allSatisfy { $0.course != nil })
+                }
             } else {
                 GeometryReader { proxy in
                     let layoutMode = StudyDeskLayoutMode(contentWidth: proxy.size.width)
@@ -79,8 +89,13 @@ struct ClassesView: View {
         }
         .navigationTitle("Classes")
         .searchable(text: $searchText, prompt: "Search classes")
-        .navigationDestination(item: $openedCourse) { course in
-            CourseWorkspaceView(course: course, quickAddTarget: $quickAddTarget)
+        .navigationDestination(item: courseNavigationBinding) { target in
+            if let course = courses.first(where: { $0.id == target.id }) {
+                CourseWorkspaceView(course: course, quickAddTarget: $quickAddTarget)
+                    .environment(navigation)
+            } else {
+                EmptyStateView(title: "Course unavailable", message: "This course was removed or is no longer available in the current workspace.", systemImage: "exclamationmark.triangle")
+            }
         }
         .toolbar {
             ToolbarItemGroup {
@@ -104,13 +119,25 @@ struct ClassesView: View {
                 Button("New Course", systemImage: "plus") {
                     quickAddTarget = .course(selectedSemester)
                 }
+                Button("Organiser", systemImage: "wand.and.stars") {
+                    showsImportedOrganizer = true
+                }
+                .disabled(sessions.allSatisfy { $0.course != nil })
             }
+        }
+        .sheet(isPresented: $showsImportedOrganizer) {
+            CalendarOrganizationSheet(
+                title: "Organiser les événements importés",
+                source: .existingSessions(sessions.filter { $0.course == nil }),
+                courses: courses,
+                existingSessions: sessions
+            )
         }
         .background(Color.studyDeskBackground)
         .onReceive(NotificationCenter.default.publisher(for: .courseCreated)) { notification in
             if let course = notification.object as? Course {
                 selectedCourse = course
-                openedCourse = course
+                navigation.openCourse(course)
                 selectedSemesterID = course.semester?.id
             }
         }
@@ -138,16 +165,15 @@ struct ClassesView: View {
                 } else if displayMode == .grid {
                     LazyVGrid(columns: gridColumns(for: layoutMode), spacing: layoutMode.cardSpacing) {
                         ForEach(filteredCourses) { course in
-                            NavigationLink {
-                                CourseWorkspaceView(course: course, quickAddTarget: $quickAddTarget)
+                            Button {
+                                openCourse(course)
                             } label: {
-                                CourseBinderCard(course: course, isSelected: selectedCourse?.id == course.id, isCompact: layoutMode != .wide)
+                                CourseBinderCard(course: course, isSelected: selectedCourse?.id == course.id, isCompact: layoutMode != .wide, isMoodleImported: moodleCourseIDs.contains(course.id))
                             }
                             .buttonStyle(.plain)
                             .contentShape(Rectangle())
                             .accessibilityIdentifier("courseCard_\(course.id.uuidString)")
                             .accessibilityLabel("Open \(course.name)")
-                            .simultaneousGesture(TapGesture().onEnded { selectedCourse = course })
                             .contextMenu {
                                 courseMenu(course)
                             }
@@ -156,16 +182,15 @@ struct ClassesView: View {
                 } else {
                     VStack(spacing: 10) {
                         ForEach(filteredCourses) { course in
-                            NavigationLink {
-                                CourseWorkspaceView(course: course, quickAddTarget: $quickAddTarget)
+                            Button {
+                                openCourse(course)
                             } label: {
-                                CourseListRow(course: course)
+                                CourseListRow(course: course, isMoodleImported: moodleCourseIDs.contains(course.id))
                             }
                             .buttonStyle(.plain)
                             .contentShape(Rectangle())
                             .accessibilityIdentifier("courseCard_\(course.id.uuidString)")
                             .accessibilityLabel("Open \(course.name)")
-                            .simultaneousGesture(TapGesture().onEnded { selectedCourse = course })
                             .contextMenu {
                                 courseMenu(course)
                             }
@@ -177,6 +202,7 @@ struct ClassesView: View {
         }
         .onAppear {
             selectedCourse = selectedCourse ?? filteredCourses.first
+            moodleCourseIDs = MoodleSyncMetadataStore().remoteIDs(kind: .course)
         }
         .sheet(item: $editingCourse) { course in
             CourseFormView(mode: .edit(course))
@@ -217,7 +243,7 @@ struct ClassesView: View {
     @ViewBuilder
     private func courseMenu(_ course: Course) -> some View {
         Button("Open Course", systemImage: "arrow.right") {
-            openedCourse = course
+            openCourse(course)
         }
         Button("Edit Course", systemImage: "pencil") {
             editingCourse = course
@@ -242,6 +268,30 @@ struct ClassesView: View {
             [GridItem(.flexible(minimum: 260), spacing: 12)]
         }
     }
+
+    private func openCourse(_ course: Course) {
+        selectedCourse = course
+        navigation.openCourse(course)
+    }
+
+    private var courseNavigationBinding: Binding<CourseNavigationTarget?> {
+        Binding {
+            guard navigation.selectedSection == .classes,
+                  let openedCourseID = navigation.openedCourseID else {
+                return nil
+            }
+            return CourseNavigationTarget(id: openedCourseID)
+        } set: { target in
+            navigation.openedCourseID = target?.id
+            if target == nil {
+                navigation.requestedCourseTab = nil
+            }
+        }
+    }
+}
+
+private struct CourseNavigationTarget: Identifiable, Hashable {
+    let id: UUID
 }
 
 struct SemesterSummaryBand: View {
@@ -252,9 +302,8 @@ struct SemesterSummaryBand: View {
         courses.flatMap(\.sessions).filter { $0.startTime >= .now }.sorted { $0.startTime < $1.startTime }
     }
 
-    private var averageProgress: Double {
-        guard !courses.isEmpty else { return 0 }
-        return courses.reduce(0) { $0 + AcademicValidationService.courseStructuralProgress($1) } / Double(courses.count)
+    private var totalSessions: Int {
+        courses.reduce(0) { $0 + $1.sessions.count }
     }
 
     var body: some View {
@@ -270,9 +319,9 @@ struct SemesterSummaryBand: View {
                     }
                 }
                 Spacer()
-                metric("Courses", "\(courses.count)", "books.vertical")
-                metric("Average", averageProgress.formatted(.percent.precision(.fractionLength(0))), "chart.pie")
-                metric("Upcoming", "\(upcomingSessions.count)", "calendar")
+                metric("Matières", "\(courses.count)", "books.vertical")
+                metric("Séances", "\(totalSessions)", "calendar")
+                metric("À venir", "\(upcomingSessions.count)", "clock")
                 Button("Manage", systemImage: "slider.horizontal.3") {}
                     .buttonStyle(.bordered)
                     .disabled(true)
@@ -288,7 +337,9 @@ struct SemesterSummaryBand: View {
                         .font(.caption.weight(.medium))
                         .foregroundStyle(.secondary)
                 }
-                ProgressBar(value: averageProgress, color: StudyDeskTheme.accentPrimary)
+                Text("\(upcomingSessions.count) séances à venir sur \(totalSessions) séances enregistrées.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
         .padding()

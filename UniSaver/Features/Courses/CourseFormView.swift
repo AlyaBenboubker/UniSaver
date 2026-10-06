@@ -3,6 +3,7 @@ import SwiftUI
 
 enum CourseFormMode {
     case create(Semester?)
+    case createPrefilled(CourseFormPrefill)
     case edit(Course)
 
     var course: Course? {
@@ -12,6 +13,7 @@ enum CourseFormMode {
 
     var initialSemester: Semester? {
         if case .create(let semester) = self { return semester }
+        if case .createPrefilled(let prefill) = self { return prefill.semester }
         return nil
     }
 
@@ -22,6 +24,16 @@ enum CourseFormMode {
     var actionTitle: String {
         course == nil ? "Create Course" : "Save Changes"
     }
+}
+
+struct CourseFormPrefill {
+    var name: String = ""
+    var code: String = ""
+    var professorName: String = ""
+    var defaultRoom: String = ""
+    var startDate: Date?
+    var endDate: Date?
+    var semester: Semester?
 }
 
 struct CourseFormView: View {
@@ -50,25 +62,34 @@ struct CourseFormView: View {
     @State private var selectedSemesterID: UUID?
     @State private var errorMessage: String?
     @State private var showsIconPicker = false
+    @State private var showsTeachingDetails = false
+    @State private var showsAppearance = false
+    @State private var showsAcademicDetails = false
 
     init(mode: CourseFormMode) {
         self.mode = mode
         let course = mode.course
         let initialSemester = mode.initialSemester
-        _name = State(initialValue: course?.name ?? "")
-        _code = State(initialValue: course?.code ?? "")
+        let prefill: CourseFormPrefill?
+        if case .createPrefilled(let draft) = mode {
+            prefill = draft
+        } else {
+            prefill = nil
+        }
+        _name = State(initialValue: course?.name ?? prefill?.name ?? "")
+        _code = State(initialValue: course?.code ?? prefill?.code ?? "")
         _courseDescription = State(initialValue: course?.courseDescription ?? "")
-        _professorName = State(initialValue: course?.professorName ?? "")
+        _professorName = State(initialValue: course?.professorName ?? prefill?.professorName ?? "")
         _professorEmail = State(initialValue: course?.professorEmail ?? "")
-        _defaultRoom = State(initialValue: course?.defaultRoom ?? "")
+        _defaultRoom = State(initialValue: course?.defaultRoom ?? prefill?.defaultRoom ?? "")
         _colorIdentifier = State(initialValue: course?.colorIdentifier ?? CourseColor.blueViolet.rawValue)
         _symbolName = State(initialValue: CourseIconCatalog.sanitizedSymbolName(course?.symbolName))
         _credits = State(initialValue: course?.credits)
         _evaluationMethod = State(initialValue: course?.evaluationMethod ?? "")
-        _hasStartDate = State(initialValue: course?.startDate != nil)
-        _startDate = State(initialValue: course?.startDate ?? Date())
-        _hasEndDate = State(initialValue: course?.endDate != nil)
-        _endDate = State(initialValue: course?.endDate ?? Calendar.current.date(byAdding: .month, value: 4, to: Date()) ?? Date())
+        _hasStartDate = State(initialValue: course?.startDate != nil || prefill?.startDate != nil)
+        _startDate = State(initialValue: course?.startDate ?? prefill?.startDate ?? Date())
+        _hasEndDate = State(initialValue: course?.endDate != nil || prefill?.endDate != nil)
+        _endDate = State(initialValue: course?.endDate ?? prefill?.endDate ?? Calendar.current.date(byAdding: .month, value: 4, to: Date()) ?? Date())
         _status = State(initialValue: course?.status ?? .notStarted)
         _selectedSemesterID = State(initialValue: course?.semester?.id ?? initialSemester?.id)
     }
@@ -79,6 +100,10 @@ struct CourseFormView: View {
         } else {
             self.init(mode: .create(initialSemester))
         }
+    }
+
+    init(prefill: CourseFormPrefill) {
+        self.init(mode: .createPrefilled(prefill))
     }
 
     var body: some View {
@@ -93,16 +118,25 @@ struct CourseFormView: View {
                         colorIdentifier: colorIdentifier
                     )
 
-                    formSection("Identity") {
-                        TextField("Name", text: $name)
+                    formSection("Essentiel") {
+                        TextField("Nom du cours", text: $name)
                         TextField("Code", text: $code)
-                        TextField("Professor", text: $professorName)
-                        TextField("Email", text: $professorEmail)
-                            .textContentType(.emailAddress)
-                        TextField("Default room", text: $defaultRoom)
+                        Picker("Semester", selection: $selectedSemesterID) {
+                            Text("Current Semester").tag(UUID?.none)
+                            ForEach(semesters) { semester in
+                                Text(semester.name).tag(Optional(semester.id))
+                            }
+                        }
                     }
 
-                    formSection("Appearance") {
+                    disclosureSection("Professeur et salle", isExpanded: $showsTeachingDetails) {
+                        TextField("Professeur", text: $professorName)
+                        TextField("Email", text: $professorEmail)
+                            .textContentType(.emailAddress)
+                        TextField("Salle par défaut", text: $defaultRoom)
+                    }
+
+                    disclosureSection("Apparence", isExpanded: $showsAppearance) {
                         Button {
                             showsIconPicker = true
                         } label: {
@@ -114,30 +148,24 @@ struct CourseFormView: View {
                         ColorSwatchPicker(selection: $colorIdentifier)
                     }
 
-                    formSection("Academic details") {
-                        Picker("Semester", selection: $selectedSemesterID) {
-                            Text("Current Semester").tag(UUID?.none)
-                            ForEach(semesters) { semester in
-                                Text(semester.name).tag(Optional(semester.id))
-                            }
-                        }
-                        Toggle("Has start date", isOn: $hasStartDate)
+                    disclosureSection("Détails académiques", isExpanded: $showsAcademicDetails) {
+                        Toggle("Date de début", isOn: $hasStartDate)
                         if hasStartDate {
-                            DatePicker("Start date", selection: $startDate, displayedComponents: .date)
+                            DatePicker("Début", selection: $startDate, displayedComponents: .date)
                         }
-                        Toggle("Has end date", isOn: $hasEndDate)
+                        Toggle("Date de fin", isOn: $hasEndDate)
                         if hasEndDate {
-                            DatePicker("End date", selection: $endDate, displayedComponents: .date)
+                            DatePicker("Fin", selection: $endDate, displayedComponents: .date)
                         }
-                        Picker("Status", selection: $status) {
+                        Picker("Statut", selection: $status) {
                             ForEach(AcademicItemStatus.allCases) { status in
                                 Text(status.title).tag(status)
                             }
                         }
                         TextField("Description", text: $courseDescription, axis: .vertical)
                             .lineLimit(3...6)
-                        TextField("Evaluation method", text: $evaluationMethod, axis: .vertical)
-                        TextField("Credits", value: $credits, format: .number)
+                        TextField("Méthode d’évaluation", text: $evaluationMethod, axis: .vertical)
+                        TextField("Crédits", value: $credits, format: .number)
                     }
 
                     if let errorMessage {
@@ -176,6 +204,18 @@ struct CourseFormView: View {
                 .font(.headline)
             content()
         }
+        .padding()
+        .deskCard()
+    }
+
+    private func disclosureSection<Content: View>(_ title: String, isExpanded: Binding<Bool>, @ViewBuilder content: @escaping () -> Content) -> some View {
+        DisclosureGroup(title, isExpanded: isExpanded) {
+            VStack(alignment: .leading, spacing: 14) {
+                content()
+            }
+            .padding(.top, 10)
+        }
+        .font(.headline)
         .padding()
         .deskCard()
     }

@@ -5,15 +5,18 @@ struct CourseBinderCard: View {
     let course: Course
     var isSelected: Bool = false
     var isCompact = false
+    var isMoodleImported = false
     @State private var isPressed = false
 
     private var color: Color { CourseColor.color(for: course.colorIdentifier) }
-    private var progress: Double { AcademicValidationService.courseStructuralProgress(course) }
     private var nextSession: ClassSession? {
         course.sessions.filter { $0.startTime >= .now }.sorted { $0.startTime < $1.startTime }.first
     }
-    private var hasResourceSignals: Bool {
-        !course.courseDescription.isEmpty || course.evaluationMethod != nil
+    private var futureSessionCount: Int {
+        course.sessions.filter { $0.startTime >= .now }.count
+    }
+    private var visibleChapterCount: Int {
+        course.chapters.filter { !$0.isArchived }.count
     }
 
     var body: some View {
@@ -44,9 +47,17 @@ struct CourseBinderCard: View {
                             .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
 
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(course.code.isEmpty ? "Course" : course.code)
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(color)
+                            HStack(spacing: 6) {
+                                Text(course.code.isEmpty ? "Matière" : course.code)
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(color)
+                                if isMoodleImported {
+                                    Label("Moodle", systemImage: "graduationcap")
+                                        .font(.caption2.weight(.semibold))
+                                        .foregroundStyle(.secondary)
+                                        .labelStyle(.titleAndIcon)
+                                }
+                            }
                             Text(course.name)
                                 .font((isCompact ? Font.callout : Font.headline).weight(.bold))
                                 .lineLimit(2)
@@ -59,22 +70,25 @@ struct CourseBinderCard: View {
                         Text(course.professorName)
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                            .lineLimit(1)
                     }
 
-                    ProgressBar(value: progress, color: color)
+                    if let nextSession {
+                        Label("\(UniDateFormatters.dayMonth.string(from: nextSession.startTime)) · \(UniDateFormatters.interval(nextSession.startTime, nextSession.endTime))", systemImage: "calendar")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    } else {
+                        Label("Aucune séance à venir", systemImage: "calendar")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.secondary)
+                    }
 
-                    HStack {
-                        Label("\(course.chapters.filter { !$0.isArchived }.count)", systemImage: "list.number")
-                        Label("\(course.sessions.count)", systemImage: "calendar")
+                    HStack(spacing: 10) {
+                        Label("\(course.sessions.count) séances", systemImage: "calendar")
+                        Label("\(futureSessionCount) à venir", systemImage: "clock")
                         Spacer()
-                        if let nextSession {
-                            Text(UniDateFormatters.dayMonth.string(from: nextSession.date))
-                        } else {
-                            Text("No session")
-                        }
-                        Image(systemName: hasResourceSignals ? "doc.text.fill" : "doc.text")
-                            .foregroundStyle(hasResourceSignals ? color : .secondary)
-                            .accessibilityLabel(hasResourceSignals ? "Course information available" : "No resources yet")
+                        Label("\(visibleChapterCount) chapitres", systemImage: "list.number")
                     }
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(.secondary)
@@ -105,12 +119,13 @@ struct CourseBinderCard: View {
         .background(isSelected ? color.opacity(0.06) : Color.clear, in: RoundedRectangle(cornerRadius: 11))
         .contentShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(course.name), \(course.chapters.count) chapters, \(course.sessions.count) sessions")
+        .accessibilityLabel("\(course.name), \(course.sessions.count) séances, \(futureSessionCount) à venir")
     }
 }
 
 struct CourseListRow: View {
     let course: Course
+    var isMoodleImported = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -118,14 +133,26 @@ struct CourseListRow: View {
                 .fill(CourseColor.color(for: course.colorIdentifier))
                 .frame(width: 8, height: 48)
             VStack(alignment: .leading) {
-                Text(course.name).font(.headline)
+                HStack(spacing: 6) {
+                    Text(course.name).font(.headline)
+                    if isMoodleImported {
+                        Label("Moodle", systemImage: "graduationcap")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                }
                 Text([course.code, course.professorName].filter { !$0.isEmpty }.joined(separator: " · "))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Text(AcademicValidationService.courseStructuralProgress(course), format: .percent.precision(.fractionLength(0)))
-                .foregroundStyle(.secondary)
+            if let nextSession = course.sessions.filter({ $0.startTime >= .now }).sorted(by: { $0.startTime < $1.startTime }).first {
+                Text("\(UniDateFormatters.dayMonth.string(from: nextSession.startTime)) · \(UniDateFormatters.interval(nextSession.startTime, nextSession.endTime))")
+                    .foregroundStyle(.secondary)
+            } else {
+                Text("Aucune séance")
+                    .foregroundStyle(.secondary)
+            }
         }
         .padding()
         .deskCard()
@@ -133,6 +160,7 @@ struct CourseListRow: View {
 }
 
 struct CoursePreviewPane: View {
+    @Environment(AppNavigationState.self) private var navigation
     let course: Course
     @Binding var quickAddTarget: QuickAddTarget?
 
@@ -200,6 +228,7 @@ struct CoursePreviewPane: View {
             HStack {
                 NavigationLink("Open Course") {
                     CourseWorkspaceView(course: course, quickAddTarget: $quickAddTarget)
+                        .environment(navigation)
                 }
                 .buttonStyle(.borderedProminent)
                 Button("Add Chapter") { quickAddTarget = .chapter(course) }
