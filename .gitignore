@@ -23,4 +23,6 @@ xcuserdata/
 
 # Logs and temporary output
 *.log
+*.profraw
+MigrationBackups/
 tmp/

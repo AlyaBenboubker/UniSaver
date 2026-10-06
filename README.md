@@ -1,6 +1,6 @@
 # UniSaver
 
-UniSaver is a native SwiftUI academic operating system for macOS and iPadOS. This first lot establishes durable SwiftData persistence and a usable workflow for courses, chapters, dated sessions, and Today.
+UniSaver is a native SwiftUI academic operating system for macOS and iPadOS. It brings courses, planning, study tools, academic content, recordings, and external learning services into one SwiftData-backed workspace.
 
 ## Requirements
 
@@ -19,13 +19,17 @@ Open `UniSaver.xcodeproj`, select the `UniSaver` scheme, then run on Mac or an i
 - Classes workspace with search, filters, grid/list modes, preview pane, and interactive SwiftUI binder cards.
 - Course workspace with Overview, Chapters, and Sessions.
 - Create/edit/archive/delete courses, chapters, and sessions with confirmations.
-- SwiftData persistence for academic years, semesters, courses, chapters, and class sessions.
+- Planner for tasks, exams, study blocks, and external calendar activities.
+- Library for resources, notes, folders, imports, recordings, and transcription.
+- Study Studio with flashcards, quizzes, spaced repetition, exercises, and understanding practice.
+- Optional Moodle synchronization and AI-assisted revision using credentials stored in Keychain.
+- SwiftData persistence with versioned schemas and isolated preview data.
 - Preview-only sample data for Microeconomics, Mathematics, Computing Foundations, Organizational Behavior, and German.
 
 ## Tests
 
-Unit tests cover validation rules, progress cycle, progress calculation, SwiftData persistence, chronological sorting, archive preference, and preview data isolation.
+Unit tests cover validation, persistence, migrations, imports, calendar parsing, study scheduling, recordings, transcription, Moodle mapping, progress, and navigation. UI tests cover the principal navigation and content-entry paths.
 
 ## Limits
 
-Documents, rich notes, planner tasks, Study Studio, AI, recordings, and sync are intentionally not implemented in this lot.
+External services require user-provided credentials and network access. Migration regressions should be tested against copies of historical stores, including their SQLite WAL and SHM sidecars, before changing the migration plan.
