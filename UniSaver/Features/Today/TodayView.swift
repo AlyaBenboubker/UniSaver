@@ -3,12 +3,14 @@ import SwiftUI
 
 struct TodayView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(AppNavigationState.self) private var navigation
     @Query(sort: \Course.name) private var courses: [Course]
     @Query(sort: \ClassSession.startTime) private var sessions: [ClassSession]
     @Query(sort: \AcademicTask.dueDate) private var tasks: [AcademicTask]
     @Query(sort: \Exam.date) private var exams: [Exam]
     @Query(sort: \StudyBlock.startDate) private var studyBlocks: [StudyBlock]
     @Query(sort: \ReadingProgress.lastOpenedAt, order: .reverse) private var readingProgress: [ReadingProgress]
+    @Query(sort: \Flashcard.updatedAt, order: .reverse) private var flashcards: [Flashcard]
     @Query private var workspaces: [AppWorkspace]
 
     @Binding var quickAddTarget: QuickAddTarget?
@@ -16,6 +18,7 @@ struct TodayView: View {
     @State private var showsCompletedTasks = false
     @State private var showsWorkspaceChooser = false
     @State private var isPreparingWorkspace = false
+    @State private var moodleTaskIDs: Set<UUID> = []
 
     private var snapshot: TodayDashboardSnapshot {
         TodayDashboardService.makeSnapshot(
@@ -26,7 +29,8 @@ struct TodayView: View {
             tasks: visibleTasks,
             exams: exams,
             studyBlocks: studyBlocks,
-            readingProgress: readingProgress
+            readingProgress: readingProgress,
+            flashcardsDue: flashcards
         )
     }
 
@@ -40,12 +44,20 @@ struct TodayView: View {
             showsCompletedTasks: $showsCompletedTasks,
             selectedDate: $selectedDate,
             quickAddTarget: $quickAddTarget,
+            moodleTaskIDs: moodleTaskIDs,
             onLoadDemo: {
                 DemoWorkspaceService.loadDemoWorkspace(in: modelContext)
                 showsWorkspaceChooser = false
                 selectedDate = .now
             },
-            onShowWorkspaceChooser: { showsWorkspaceChooser = true }
+            onShowWorkspaceChooser: { showsWorkspaceChooser = true },
+            onOpenCourse: { course, tab in navigation.openCourse(course, tab: tab) },
+            onOpenStudy: { navigation.requestSelect(.study) },
+            onCompleteTask: { task in
+                task.status = .completed
+                task.updatedAt = .now
+                try? modelContext.save()
+            }
         )
         .navigationTitle("Today")
         #if os(iOS)
@@ -73,6 +85,7 @@ struct TodayView: View {
         }
         .onAppear {
             showsWorkspaceChooser = workspaces.isEmpty && courses.isEmpty
+            moodleTaskIDs = MoodleSyncMetadataStore().remoteIDs(kind: .task)
         }
     }
 }
@@ -82,8 +95,12 @@ struct TodayDashboardView: View {
     @Binding var showsCompletedTasks: Bool
     @Binding var selectedDate: Date
     @Binding var quickAddTarget: QuickAddTarget?
+    let moodleTaskIDs: Set<UUID>
     let onLoadDemo: () -> Void
     let onShowWorkspaceChooser: () -> Void
+    let onOpenCourse: (Course, CourseWorkspaceTab) -> Void
+    let onOpenStudy: () -> Void
+    let onCompleteTask: (AcademicTask) -> Void
 
     var body: some View {
         GeometryReader { proxy in
@@ -95,6 +112,15 @@ struct TodayDashboardView: View {
                         firstName: snapshot.workspace?.firstName ?? "Alya",
                         selectedDate: $selectedDate,
                         layoutMode: layoutMode
+                    )
+                    WeeklyOverviewSection(
+                        overview: snapshot.weeklyOverview,
+                        selectedDate: $selectedDate,
+                        layoutMode: layoutMode,
+                        onOpenCourse: onOpenCourse,
+                        onOpenStudy: onOpenStudy,
+                        onCompleteTask: onCompleteTask,
+                        moodleTaskIDs: moodleTaskIDs
                     )
 
                     if snapshot.workspace == nil && snapshot.courseProgress.isEmpty {
@@ -131,14 +157,15 @@ struct TodayDashboardView: View {
                     PriorityTaskList(
                         tasks: snapshot.priorityTasks,
                         showsCompletedTasks: $showsCompletedTasks,
-                        quickAddTarget: $quickAddTarget
+                        quickAddTarget: $quickAddTarget,
+                        moodleTaskIDs: moodleTaskIDs
                     )
                 }
                 .frame(maxWidth: .infinity)
                 .layoutPriority(layoutMode == .tabletExpanded ? 1.4 : 1.2)
 
                 VStack(spacing: StudyDeskTheme.spacing) {
-                    NextClassCard(session: snapshot.nextSession, layoutMode: layoutMode)
+                    NextClassCard(session: snapshot.nextSession, layoutMode: layoutMode, onOpenCourse: onOpenCourse)
                     HStack(spacing: StudyDeskTheme.spacing) {
                         UpcomingExamCard(exam: snapshot.upcomingExam)
                         AssignmentDueCard(task: snapshot.assignmentDue)
@@ -154,7 +181,7 @@ struct TodayDashboardView: View {
             }
         case .medium:
             VStack(spacing: layoutMode.cardSpacing) {
-                NextClassCard(session: snapshot.nextSession, layoutMode: layoutMode)
+                NextClassCard(session: snapshot.nextSession, layoutMode: layoutMode, onOpenCourse: onOpenCourse)
                 Grid(horizontalSpacing: layoutMode.cardSpacing, verticalSpacing: layoutMode.cardSpacing) {
                     GridRow {
                         ScheduleTimeline(items: snapshot.timelineItems, quickAddTarget: $quickAddTarget)
@@ -167,7 +194,8 @@ struct TodayDashboardView: View {
                         PriorityTaskList(
                             tasks: snapshot.priorityTasks,
                             showsCompletedTasks: $showsCompletedTasks,
-                            quickAddTarget: $quickAddTarget
+                            quickAddTarget: $quickAddTarget,
+                            moodleTaskIDs: moodleTaskIDs
                         )
                         StudyProgressSection(progress: snapshot.courseProgress, studyBlocks: snapshot.studyBlocks)
                     }
@@ -179,12 +207,13 @@ struct TodayDashboardView: View {
             }
         case .compact:
             VStack(spacing: layoutMode.cardSpacing) {
-                NextClassCard(session: snapshot.nextSession, layoutMode: layoutMode)
+                NextClassCard(session: snapshot.nextSession, layoutMode: layoutMode, onOpenCourse: onOpenCourse)
                 ScheduleTimeline(items: snapshot.timelineItems, quickAddTarget: $quickAddTarget)
                 PriorityTaskList(
                     tasks: snapshot.priorityTasks,
                     showsCompletedTasks: $showsCompletedTasks,
-                    quickAddTarget: $quickAddTarget
+                    quickAddTarget: $quickAddTarget,
+                    moodleTaskIDs: moodleTaskIDs
                 )
                 UpcomingExamCard(exam: snapshot.upcomingExam)
                 AssignmentDueCard(task: snapshot.assignmentDue)
@@ -204,6 +233,224 @@ private extension TodayDashboardSnapshot {
             && assignmentDue == nil
             && recentReading == nil
             && !flashcards.isConfigured
+    }
+}
+
+struct WeeklyOverviewSection: View {
+    let overview: WeeklyOverview
+    @Binding var selectedDate: Date
+    let layoutMode: StudyDeskLayoutMode
+    let onOpenCourse: (Course, CourseWorkspaceTab) -> Void
+    let onOpenStudy: () -> Void
+    let onCompleteTask: (AcademicTask) -> Void
+    let moodleTaskIDs: Set<UUID>
+
+    private var columns: [GridItem] {
+        [GridItem(.adaptive(minimum: layoutMode == .compact ? 150 : 175), spacing: 10)]
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .center) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Weekly Overview")
+                        .font(.headline)
+                    Text("\(UniDateFormatters.dayMonth.string(from: overview.weekInterval.start)) - \(UniDateFormatters.dayMonth.string(from: overview.weekInterval.end.addingTimeInterval(-1)))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                HStack(spacing: 8) {
+                    Button("Previous", systemImage: "chevron.left") { shiftWeek(-1) }
+                        .labelStyle(.iconOnly)
+                    Button("This Week") { selectedDate = .now }
+                    Button("Next", systemImage: "chevron.right") { shiftWeek(1) }
+                        .labelStyle(.iconOnly)
+                }
+                .buttonStyle(.bordered)
+            }
+
+            if !overview.hasEvents {
+                EmptyStateView(
+                    title: "No scheduled study this week",
+                    message: "Add sessions, tasks, or due flashcards and they will appear here.",
+                    systemImage: "calendar.badge.clock"
+                )
+                .frame(minHeight: 160)
+            } else {
+                LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
+                    ForEach(overview.days) { day in
+                        WeeklyDayCard(day: day, onOpenCourse: onOpenCourse, onOpenStudy: onOpenStudy, onCompleteTask: onCompleteTask, moodleTaskIDs: moodleTaskIDs)
+                    }
+                }
+            }
+
+            WeeklyActionSummary(overview: overview, onOpenCourse: onOpenCourse, onOpenStudy: onOpenStudy, onCompleteTask: onCompleteTask, moodleTaskIDs: moodleTaskIDs)
+        }
+        .padding()
+        .deskCard()
+    }
+
+    private func shiftWeek(_ value: Int) {
+        selectedDate = Calendar.current.date(byAdding: .day, value: value * 7, to: selectedDate) ?? selectedDate
+    }
+}
+
+struct WeeklyDayCard: View {
+    let day: WeeklyDashboardDay
+    let onOpenCourse: (Course, CourseWorkspaceTab) -> Void
+    let onOpenStudy: () -> Void
+    let onCompleteTask: (AcademicTask) -> Void
+    let moodleTaskIDs: Set<UUID>
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(day.date.formatted(.dateTime.weekday(.abbreviated).day()))
+                .font(.caption.weight(.bold))
+                .foregroundStyle(Calendar.current.isDateInToday(day.date) ? StudyDeskTheme.accentPrimary : StudyDeskTheme.textPrimary)
+
+            if day.sessions.isEmpty && day.tasks.isEmpty && day.flashcards.isEmpty {
+                Text("Clear")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(minHeight: 54, alignment: .topLeading)
+            } else {
+                ForEach(day.sessions.prefix(3)) { session in
+                    Button {
+                        if let course = session.course { onOpenCourse(course, .sessions) }
+                    } label: {
+                        Label("\(UniDateFormatters.time.string(from: session.startTime)) \(session.course?.name ?? session.title)", systemImage: "books.vertical")
+                            .lineLimit(1)
+                    }
+                    .buttonStyle(.plain)
+                    .font(.caption)
+                    .foregroundStyle(StudyDeskTheme.textPrimary)
+                    if let room = session.room, !room.isEmpty {
+                        Text(room)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                ForEach(day.tasks.prefix(2)) { task in
+                    Button {
+                        onCompleteTask(task)
+                    } label: {
+                        HStack(spacing: 4) {
+                            Label(task.title, systemImage: task.status == .completed ? "checkmark.circle.fill" : "circle")
+                                .lineLimit(1)
+                            if moodleTaskIDs.contains(task.id) {
+                                Image(systemName: "graduationcap")
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .font(.caption)
+                }
+                if !day.flashcards.isEmpty {
+                    Button {
+                        onOpenStudy()
+                    } label: {
+                        Label("\(day.flashcards.count) flashcards", systemImage: "rectangle.stack")
+                    }
+                    .buttonStyle(.plain)
+                    .font(.caption)
+                }
+            }
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, minHeight: 134, alignment: .topLeading)
+        .background(StudyDeskTheme.surfaceTinted, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(StudyDeskTheme.borderSubtle, lineWidth: 1)
+        }
+    }
+}
+
+struct WeeklyActionSummary: View {
+    let overview: WeeklyOverview
+    let onOpenCourse: (Course, CourseWorkspaceTab) -> Void
+    let onOpenStudy: () -> Void
+    let onCompleteTask: (AcademicTask) -> Void
+    let moodleTaskIDs: Set<UUID>
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if let next = overview.nextSession {
+                HStack {
+                    Label("Next class", systemImage: "clock.badge")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(StudyDeskTheme.accentPrimary)
+                    Text("\(next.course?.name ?? next.title) · \(UniDateFormatters.interval(next.startTime, next.endTime))")
+                        .font(.caption)
+                    Spacer()
+                    Button("Open") {
+                        if let course = next.course { onOpenCourse(course, .sessions) }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+            }
+
+            HStack(alignment: .top, spacing: 12) {
+                WeeklyTaskGroup(title: "Overdue", tasks: overview.overdueTasks, tint: .red, onCompleteTask: onCompleteTask, moodleTaskIDs: moodleTaskIDs)
+                WeeklyTaskGroup(title: "Due this week", tasks: overview.upcomingTasks, tint: .orange, onCompleteTask: onCompleteTask, moodleTaskIDs: moodleTaskIDs)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Reviews")
+                        .font(.caption.weight(.semibold))
+                    if overview.dueFlashcards.isEmpty {
+                        Text("No due flashcards")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Button("\(overview.dueFlashcards.count) flashcards due", action: onOpenStudy)
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+}
+
+struct WeeklyTaskGroup: View {
+    let title: String
+    let tasks: [AcademicTask]
+    let tint: Color
+    let onCompleteTask: (AcademicTask) -> Void
+    let moodleTaskIDs: Set<UUID>
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(tint)
+            if tasks.isEmpty {
+                Text("None")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(tasks.prefix(3)) { task in
+                    Button {
+                        onCompleteTask(task)
+                    } label: {
+                        HStack(spacing: 4) {
+                            Label(task.title, systemImage: "circle")
+                                .lineLimit(1)
+                            if moodleTaskIDs.contains(task.id) {
+                                Image(systemName: "graduationcap")
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .font(.caption)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -431,6 +678,7 @@ struct ScheduleTimelineRow: View {
 struct NextClassCard: View {
     let session: ClassSession?
     var layoutMode: StudyDeskLayoutMode = .wide
+    let onOpenCourse: (Course, CourseWorkspaceTab) -> Void
 
     private var ringSize: CGFloat {
         switch layoutMode {
@@ -492,15 +740,14 @@ struct NextClassCard: View {
                     .foregroundStyle(.secondary)
 
                     HStack(spacing: 10) {
-                        NavigationLink("View Details") {
+                        Button("View Details") {
                             if let course = session.course {
-                                CourseWorkspaceView(course: course, quickAddTarget: .constant(nil))
-                            } else {
-                                MissingContextView(title: "No course", message: "This session is not linked to a course.")
+                                onOpenCourse(course, .sessions)
                             }
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(StudyDeskTheme.accentPrimary)
+                        .disabled(session.course == nil)
 
                         Button("Open Notes") {}
                             .buttonStyle(.bordered)
@@ -683,6 +930,7 @@ struct PriorityTaskList: View {
     let tasks: [AcademicTask]
     @Binding var showsCompletedTasks: Bool
     @Binding var quickAddTarget: QuickAddTarget?
+    let moodleTaskIDs: Set<UUID>
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -717,7 +965,7 @@ struct PriorityTaskList: View {
             } else {
                 VStack(spacing: 0) {
                     ForEach(tasks.prefix(5)) { task in
-                        PriorityTaskRow(task: task)
+                        PriorityTaskRow(task: task, isMoodleImported: moodleTaskIDs.contains(task.id))
                         if task.id != tasks.prefix(5).last?.id {
                             Divider()
                         }
@@ -740,6 +988,7 @@ struct PriorityTaskList: View {
 
 struct PriorityTaskRow: View {
     @Bindable var task: AcademicTask
+    var isMoodleImported = false
 
     var body: some View {
         HStack(spacing: 11) {
@@ -763,6 +1012,11 @@ struct PriorityTaskRow: View {
                     Text(task.course?.name ?? "General")
                     Text("·")
                     Text("due \(UniDateFormatters.dayMonth.string(from: task.dueDate))")
+                    if isMoodleImported {
+                        Text("·")
+                        Label("Moodle", systemImage: "graduationcap")
+                            .labelStyle(.titleAndIcon)
+                    }
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)

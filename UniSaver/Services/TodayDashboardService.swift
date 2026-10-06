@@ -4,6 +4,7 @@ import SwiftData
 struct TodayDashboardSnapshot {
     let selectedDate: Date
     let workspace: AppWorkspace?
+    let weeklyOverview: WeeklyOverview
     let sessions: [ClassSession]
     let studyBlocks: [StudyBlock]
     let timelineItems: [DashboardTimelineItem]
@@ -14,6 +15,27 @@ struct TodayDashboardSnapshot {
     let courseProgress: [CourseProgressSummary]
     let flashcards: FlashcardsSummary
     let recentReading: ReadingProgress?
+}
+
+struct WeeklyOverview {
+    let weekInterval: DateInterval
+    let days: [WeeklyDashboardDay]
+    let nextSession: ClassSession?
+    let overdueTasks: [AcademicTask]
+    let upcomingTasks: [AcademicTask]
+    let dueFlashcards: [Flashcard]
+
+    var hasEvents: Bool {
+        days.contains { !$0.sessions.isEmpty || !$0.tasks.isEmpty || !$0.flashcards.isEmpty }
+    }
+}
+
+struct WeeklyDashboardDay: Identifiable {
+    let id: Date
+    let date: Date
+    let sessions: [ClassSession]
+    let tasks: [AcademicTask]
+    let flashcards: [Flashcard]
 }
 
 struct DashboardTimelineItem: Identifiable {
@@ -57,6 +79,7 @@ enum TodayDashboardService {
         exams: [Exam],
         studyBlocks: [StudyBlock],
         readingProgress: [ReadingProgress],
+        flashcardsDue: [Flashcard] = [],
         calendar: Calendar = .current,
         now: Date = .now
     ) -> TodayDashboardSnapshot {
@@ -90,6 +113,14 @@ enum TodayDashboardService {
             .sorted { $0.name < $1.name }
             .map { CourseProgressSummary(id: $0.id, course: $0, progress: AcademicValidationService.courseStructuralProgress($0)) }
         let recentReading = readingProgress.sorted { $0.lastOpenedAt > $1.lastOpenedAt }.first
+        let weeklyOverview = makeWeeklyOverview(
+            selectedDate: selectedDate,
+            sessions: sessions,
+            tasks: tasks,
+            flashcards: flashcardsDue,
+            calendar: calendar,
+            now: now
+        )
         let flashcards: FlashcardsSummary
         if let workspace, workspace.isDemoWorkspace {
             flashcards = FlashcardsSummary(
@@ -105,6 +136,7 @@ enum TodayDashboardService {
         return TodayDashboardSnapshot(
             selectedDate: selectedDate,
             workspace: workspace,
+            weeklyOverview: weeklyOverview,
             sessions: daySessions,
             studyBlocks: dayBlocks,
             timelineItems: timeline,
@@ -132,6 +164,65 @@ enum TodayDashboardService {
         let start = calendar.startOfDay(for: now)
         let end = calendar.startOfDay(for: date)
         return calendar.dateComponents([.day], from: start, to: end).day ?? 0
+    }
+
+    static func makeWeeklyOverview(
+        selectedDate: Date,
+        sessions: [ClassSession],
+        tasks: [AcademicTask],
+        flashcards: [Flashcard],
+        calendar: Calendar = .current,
+        now: Date = .now
+    ) -> WeeklyOverview {
+        let interval = weekInterval(containing: selectedDate, calendar: calendar)
+        let days = (0..<7).compactMap { offset -> WeeklyDashboardDay? in
+            guard let day = calendar.date(byAdding: .day, value: offset, to: interval.start),
+                  let dayInterval = calendar.dateInterval(of: .day, for: day) else {
+                return nil
+            }
+            return WeeklyDashboardDay(
+                id: dayInterval.start,
+                date: dayInterval.start,
+                sessions: sessions
+                    .filter { dayInterval.contains($0.startTime) }
+                    .sorted { $0.startTime < $1.startTime },
+                tasks: tasks
+                    .filter { $0.status != .completed && $0.status != .cancelled && dayInterval.contains($0.dueDate) }
+                    .sorted { lhs, rhs in
+                        if lhs.dueDate != rhs.dueDate { return lhs.dueDate < rhs.dueDate }
+                        return lhs.priority < rhs.priority
+                    },
+                flashcards: flashcards
+                    .filter { dayInterval.contains($0.reviewState.dueDate) }
+                    .sorted { $0.reviewState.dueDate < $1.reviewState.dueDate }
+            )
+        }
+        let activeTasks = tasks.filter { $0.status != .completed && $0.status != .cancelled }
+        let weekEnd = interval.end
+        return WeeklyOverview(
+            weekInterval: interval,
+            days: days,
+            nextSession: sessions.filter { $0.startTime >= now }.sorted { $0.startTime < $1.startTime }.first,
+            overdueTasks: activeTasks.filter { $0.dueDate < calendar.startOfDay(for: now) }.sorted { $0.dueDate < $1.dueDate },
+            upcomingTasks: activeTasks
+                .filter { $0.dueDate >= calendar.startOfDay(for: now) && $0.dueDate < weekEnd }
+                .sorted { lhs, rhs in
+                    if lhs.dueDate != rhs.dueDate { return lhs.dueDate < rhs.dueDate }
+                    return lhs.priority < rhs.priority
+                },
+            dueFlashcards: flashcards
+                .filter { $0.reviewState.dueDate < weekEnd }
+                .sorted { $0.reviewState.dueDate < $1.reviewState.dueDate }
+        )
+    }
+
+    static func weekInterval(containing date: Date, calendar: Calendar = .current) -> DateInterval {
+        let startOfDay = calendar.startOfDay(for: date)
+        let weekday = calendar.component(.weekday, from: startOfDay)
+        let daysFromMonday = (weekday + 5) % 7
+        let start = calendar.date(byAdding: .day, value: -daysFromMonday, to: startOfDay) ?? startOfDay
+        let end = calendar.date(byAdding: .day, value: 7, to: start) ?? start.addingTimeInterval(7 * 86_400)
+        return DateInterval(start: start, end: end)
     }
 
     private static func makeTimelineItems(sessions: [ClassSession], studyBlocks: [StudyBlock]) -> [DashboardTimelineItem] {
