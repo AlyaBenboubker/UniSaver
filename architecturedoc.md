@@ -133,4 +133,9 @@ Inspected the nested Apple Git repository, source models, persistence, account s
 
 ### 24 October 2026 — session-log consolidation
 
-**Implemented and verified:** consolidated the recoverable sessions above from Git and the existing project notes, retaining historical failures, verification limits and source links. Added explicit undated entries rather than invent implementation dates. Corrected the sync description to distinguish upload/counting from two-way record merging. **Documentation checks only:** reviewed the diff and local Markdown links; no app tests, live AI calls or Firebase operations were performed for this documentation update. GitHub publication remains blocked as described in [PUBLICATION_STATUS.md](PUBLICATION_STATUS.md).
+**Implemented and verified:** consolidated the recoverable sessions above from Git and the existing project notes, retaining historical failures, verification limits and source links. Added explicit undated entries rather than invent implementation dates. Corrected the sync description to distinguish upload/counting from two-way record merging. **Documentation checks only:** reviewed the diff and local Markdown links; no app tests, live AI calls or Firebase operations were performed for this documentation update. At this session’s end, GitHub publication remained blocked; the follow-up below records its resolution.
+
+
+### 24 October 2026 — GitHub publication follow-up
+
+The user supplied [the UniSaver repository](https://github.com/AlyaBenboubker/UniSaver). Authenticated Git access confirmed an empty remote; configured it as origin and published the prepared history as the initial main branch with no force push. The local development branch name is preserved. Remote-ref verification establishes publication; the GitHub connector still lacks access and repository visibility was not confirmed through that connector. No app code changed or additional app tests ran in this follow-up. See [PUBLICATION_STATUS.md](PUBLICATION_STATUS.md) for the transport and verification details.
