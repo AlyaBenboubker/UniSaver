@@ -1,35 +1,33 @@
 # UniSaver
 
-UniSaver is a native SwiftUI academic operating system for macOS and iPadOS. It brings courses, planning, study tools, academic content, recordings, and external learning services into one SwiftData-backed workspace.
+UniSaver is a native study workspace for courses, tasks, resources, flashcards and exam practice. It saves revision attempts and provides optional evidence-based AI coaching.
 
-## Requirements
+## Open and run
 
-- Xcode 26.6 project format as currently configured.
-- macOS and iPadOS deployment target: 26.5.
-- SwiftUI and SwiftData, no external dependencies.
+1. Use macOS with Xcode supporting the configured macOS/iPadOS 26.5 deployment targets and SwiftData.
+2. Open `UniSaver.xcodeproj` and select the `UniSaver` scheme and My Mac. Resolve Swift packages using the committed `Package.resolved`.
+3. Obtain the authorised Firebase Apple configuration for bundle `alyaben.UniSaver`. Place it at `UniSaver/Configuration/GoogleService-Info.plist`, using the adjacent example as a field guide. The real file is ignored. The app configures Firebase at startup, so an example with placeholders cannot run it.
+4. Existing shareable URL configuration is in `Configuration/UniSaver-Info.plist`; it must match the authorised Google OAuth client. Keep project identity and signing unchanged unless your development environment requires a signing adjustment.
+5. Run the app. Configure optional AI and Moodle credentials in Settings; credentials belong in Keychain, never source files.
 
-## Run
+Dependencies include Firebase and Google Sign-In, pinned through Swift Package Manager. Backend configuration targets project `gen-lang-client-0388206332`, named Firestore database `unisaver`. No backend deployment is needed just to inspect or build the source. Deployment requires separate authorised access and review. Copy `firebase.example.json` to the ignored `firebase.json` and supply your authorised support contact only if you need backend deployment.
 
-Open `UniSaver.xcodeproj`, select the `UniSaver` scheme, then run on Mac or an iPad simulator. The app opens on Today. Use Classes or Quick Add to create courses, chapters, and sessions.
+## Study and persistence
 
-## Current Features
+Study has Practice, Mock exams and History. Objective grading uses stored keys; written AI feedback is provisional. Teacher papers preserve their original content. Attempts, retries and unfinished sessions are saved locally. Revision history is scoped to account identity, but revision sync is not implemented; existing account sync covers only part of the academic workspace. Other local academic records are not fully isolated between accounts.
 
-- `NavigationSplitView` with Today, Classes, Study, Planner, Progress, and Library.
-- Today dashboard with greeting, date, next class, today's schedule, upcoming active classes, chapters to review, and quick actions.
-- Classes workspace with search, filters, grid/list modes, preview pane, and interactive SwiftUI binder cards.
-- Course workspace with Overview, Chapters, and Sessions.
-- Create/edit/archive/delete courses, chapters, and sessions with confirmations.
-- Planner for tasks, exams, study blocks, and external calendar activities.
-- Library for resources, notes, folders, imports, recordings, and transcription.
-- Study Studio with flashcards, quizzes, spaced repetition, exercises, and understanding practice.
-- Optional Moodle synchronization and AI-assisted revision using credentials stored in Keychain.
-- SwiftData persistence with versioned schemas and isolated preview data.
-- Preview-only sample data for Microeconomics, Mathematics, Computing Foundations, Organizational Behavior, and German.
+## Verify
 
-## Tests
+```sh
+xcodebuild -project UniSaver.xcodeproj -scheme UniSaver \
+  -destination 'platform=macOS' -derivedDataPath /tmp/UniSaverBuild test \
+  -only-testing:UniSaverTests/RevisionHistoryTests \
+  -only-testing:UniSaverTests/ExamLabTests \
+  -only-testing:UniSaverTests/QuestionBankTests \
+  -only-testing:UniSaverTests/RevisionTopicTests \
+  -only-testing:UniSaverTests/RevisionCoachingTests CODE_SIGNING_ALLOWED=NO
+```
 
-Unit tests cover validation, persistence, migrations, imports, calendar parsing, study scheduling, recordings, transcription, Moodle mapping, progress, and navigation. UI tests cover the principal navigation and content-entry paths.
+Use isolated test stores. Provider/live suites are optional and can send data or incur charges. A focused pass does not establish that the whole suite passes. iPad runtime, production sync and all historical store migrations remain unverified. Private supplied course fixtures are excluded; parser tests use a synthetic replacement.
 
-## Limits
-
-External services require user-provided credentials and network access. Migration regressions should be tested against copies of historical stores, including their SQLite WAL and SHM sidecars, before changing the migration plan.
+See [architecture and verification boundaries](architecturedoc.md), [product scope](PRODUCT_SCOPE.md), [revision history](REVISION_HISTORY.md), [Exam Lab](EXAM_LAB.md), [coaching](REVISION_COACHING.md) and [publication status](PUBLICATION_STATUS.md).

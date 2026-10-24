@@ -5,6 +5,50 @@ import Testing
 @testable import UniSaver
 
 struct UniSaverTests {
+    @Test @MainActor func quizSessionSubmitsOnceAndSurvivesFocusChanges() {
+        let session = QuizPracticeSession()
+        session.answers = ["B", ""]
+        #expect(session.submitCurrent())
+        #expect(!session.submitCurrent())
+        session.isFocused = true
+        session.isFocused = false
+        #expect(session.index == 0)
+        #expect(session.answers[0] == "B")
+        #expect(session.submitted == [0])
+        session.index = 1
+        #expect(!session.submitCurrent())
+        session.index = 0
+        #expect(!session.submitCurrent())
+    }
+
+    @Test func quizFeedbackUsesStableKeysAndRejectsInvalidKeys() {
+        let question = QuizQuestion(prompt: "What do consolidated financial statements aim to show?",
+            choices: ["A: Separate entities", "B: The group as one economic entity"], correctAnswers: ["B"])
+        #expect(QuizScoringService.isCorrect(question: question, answer: "B"))
+        #expect(QuizScoringService.isCorrect(question: question, answer: "B: The group as one economic entity"))
+        #expect(!QuizScoringService.isCorrect(question: question, answer: "A"))
+        question.choices.reverse()
+        #expect(QuizScoringService.isCorrect(question: question, answer: "B"))
+        question.correctAnswers = ["Z"]
+        #expect(QuizScoringService.keyError(question: question) != nil)
+        #expect(QuizScoringService.score(questions: [question], answers: ["B"]).maximum == 0)
+        question.correctAnswers = []
+        #expect(QuizScoringService.keyError(question: question) != nil)
+    }
+
+    @Test func quizFeedbackExplainsMissingAndExtraSelections() {
+        let question = QuizQuestion(prompt: "Select", type: .multipleSelect,
+            choices: ["A: One, with comma", "B: Two", "C: Three"], correctAnswers: ["A", "B"])
+        #expect(QuizScoringService.isCorrect(question: question, answer: "B,A"))
+        #expect(!QuizScoringService.isCorrect(question: question, answer: "A,C"))
+        #expect(QuizScoringService.selectionDetails(question: question, answer: "A,C") == "Missing selections: B\nExtra selections: C")
+        let boolean = QuizQuestion(prompt: "True?", type: .trueFalse, correctAnswers: ["True"])
+        #expect(QuizScoringService.isCorrect(question: boolean, answer: "true"))
+        #expect(!QuizScoringService.isCorrect(question: boolean, answer: "False"))
+        boolean.correctAnswers = ["maybe"]
+        #expect(QuizScoringService.keyError(question: boolean) != nil)
+    }
+
     @Test func academicYearRequiresValidDateRange() throws {
         let start = Date()
         let end = start.addingTimeInterval(-3600)
@@ -218,6 +262,167 @@ struct UniSaverTests {
         #expect(!overview.hasEvents)
         #expect(overview.days.count == 7)
         #expect(overview.nextSession == nil)
+    }
+
+    @Test func gamificationAwardsXPOncePerSourceActivity() {
+        let course = Course(name: "Accounting", code: "ACC")
+        let task = AcademicTask(title: "Finish HW2", dueDate: .now, course: course)
+        var ledger = GamificationLedger()
+
+        GamificationLedgerStore.award(activityType: .taskCompletion, sourceID: task.id.uuidString, courseID: course.id, ledger: &ledger)
+        GamificationLedgerStore.award(activityType: .taskCompletion, sourceID: task.id.uuidString, courseID: course.id, ledger: &ledger)
+
+        #expect(ledger.activeEvents.count == 1)
+        #expect(ledger.totalXP == GamificationActivityType.taskCompletion.ruleXP)
+    }
+
+    @Test func gamificationAnnulsWithoutDeletingHistoryOrDoubleCorrecting() {
+        let task = AcademicTask(title: "Case outline", dueDate: .now)
+        var ledger = GamificationLedger()
+
+        GamificationLedgerStore.award(activityType: .taskCompletion, sourceID: task.id.uuidString, courseID: nil, ledger: &ledger)
+        GamificationLedgerStore.annul(activityType: .taskCompletion, sourceID: task.id.uuidString, ledger: &ledger)
+        GamificationLedgerStore.annul(activityType: .taskCompletion, sourceID: task.id.uuidString, ledger: &ledger)
+
+        #expect(ledger.events.count == 1)
+        #expect(ledger.activeEvents.isEmpty)
+        #expect(ledger.totalXP == 0)
+    }
+
+    @Test func gamificationCountsOneActiveDayForMultipleActivities() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 3600) ?? .current
+        let day = calendar.date(from: DateComponents(year: 2026, month: 10, day: 5, hour: 9)) ?? Date()
+        let later = calendar.date(byAdding: .hour, value: 3, to: day) ?? day
+        let taskA = AcademicTask(title: "A", dueDate: day)
+        let taskB = AcademicTask(title: "B", dueDate: day)
+        var ledger = GamificationLedger()
+
+        GamificationLedgerStore.award(activityType: .taskCompletion, sourceID: taskA.id.uuidString, courseID: nil, occurredAt: day, ledger: &ledger)
+        GamificationLedgerStore.award(activityType: .taskCompletion, sourceID: taskB.id.uuidString, courseID: nil, occurredAt: later, ledger: &ledger)
+        let summary = GamificationEngine.weeklySummary(tasks: [taskA, taskB], ledger: ledger, calendar: calendar, now: later)
+
+        #expect(summary.activeDays == 1)
+        #expect(summary.activeDayGoal == 3)
+    }
+
+    @Test func gamificationWeeklyGoalChangeDoesNotAwardXP() {
+        var ledger = GamificationLedger()
+        ledger.settings.weeklyActiveDayGoal = 5
+
+        #expect(ledger.totalXP == 0)
+        #expect(ledger.settings.weeklyActiveDayGoal == 5)
+    }
+
+    @Test func gamificationQuestsUseExistingWorkWithoutDuplicates() {
+        let calendar = Calendar.current
+        let now = calendar.startOfDay(for: .now)
+        let course = Course(name: "Business Law", code: "LAW")
+        let urgent = AcademicTask(title: "Prepare case outline", dueDate: now, priority: .urgent, course: course)
+        let later = AcademicTask(title: "Read chapter", dueDate: now.addingTimeInterval(86_400), priority: .medium, course: course)
+        var ledger = GamificationLedger()
+        GamificationLedgerStore.award(activityType: .taskCompletion, sourceID: urgent.id.uuidString, courseID: course.id, ledger: &ledger)
+
+        let quests = GamificationEngine.quests(tasks: [urgent, later], studyBlocks: [], flashcards: [], ledger: ledger, calendar: calendar, now: now)
+
+        #expect(!quests.contains { $0.sourceID == urgent.id.uuidString })
+        #expect(quests.first?.sourceID == later.id.uuidString)
+        #expect(quests.count == 1)
+    }
+
+    @Test func gamificationComebackUsesSmallExistingActionWithoutBonusXP() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        let today = calendar.date(from: DateComponents(year: 2026, month: 10, day: 10, hour: 10)) ?? Date()
+        let old = calendar.date(byAdding: .day, value: -6, to: today) ?? today
+        let course = Course(name: "Finance", code: "FIN")
+        let task = AcademicTask(title: "Review formulas", dueDate: today.addingTimeInterval(3600), estimatedDuration: 3600, course: course)
+        var ledger = GamificationLedger()
+        GamificationLedgerStore.award(activityType: .taskCompletion, sourceID: UUID().uuidString, courseID: course.id, occurredAt: old, ledger: &ledger)
+
+        let quests = GamificationEngine.quests(tasks: [task], studyBlocks: [], flashcards: [], ledger: ledger, calendar: calendar, now: today)
+
+        #expect(quests.first?.isComeback == true)
+        #expect(quests.first?.estimatedMinutes == 20)
+        #expect(ledger.totalXP == GamificationActivityType.taskCompletion.ruleXP)
+    }
+
+    @Test func conversationFixtureExtractsStructuredActionsWithMadridDates() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Europe/Madrid") ?? .current
+        let referenceDate = calendar.date(from: DateComponents(year: 2026, month: 10, day: 10, hour: 12)) ?? Date()
+        let courses = [
+            Course(name: "Data Structures and Algorithm Design", code: "DSA"),
+            Course(name: "Accounting II", code: "ACC2"),
+            Course(name: "Business Law 1", code: "LAW1"),
+            Course(name: "OT", code: "OT")
+        ]
+        let message = """
+        Week 12 Oct - 18 Oct:
+
+        Monday 12:
+        • No classes
+        • Data Structures and Algorithm Design: HW2 (Sliding Window and Hashing) submission
+
+        Tuesday 13:
+        • Accounting II: Comprehensive Case Consolidation (Case 2)
+        • Business Law 1: Prepare Case Study 2 (Amendments to the by-laws and structural changes) + test at the start of class
+
+        Thursday 15:
+        • Accounting II: Test 2 (consolidations)
+        • OT: Session 10 readings
+        """
+
+        let proposal = ConversationProposalEngine.analyze(message: message, referenceDate: referenceDate, timeZone: calendar.timeZone, courses: courses, tasks: [], studyBlocks: [])
+
+        #expect(proposal.actions.contains { $0.kind == .flagCalendarConflict && $0.title.localizedCaseInsensitiveContains("No classes") })
+        #expect(proposal.actions.contains { $0.title.localizedCaseInsensitiveContains("HW2") && calendar.component(.day, from: $0.dueDate ?? .distantPast) == 12 && !$0.hasKnownTime })
+        #expect(proposal.actions.contains { $0.title.localizedCaseInsensitiveContains("Prepare Case Study 2") })
+        #expect(proposal.actions.contains { $0.title.localizedCaseInsensitiveContains("Test") && $0.selectedCourseID == courses[2].id })
+        #expect(proposal.actions.contains { $0.title.localizedCaseInsensitiveContains("Test 2") && $0.selectedCourseID == courses[1].id && calendar.component(.day, from: $0.dueDate ?? .distantPast) == 15 })
+        #expect(proposal.actions.contains { $0.title.localizedCaseInsensitiveContains("readings") && $0.selectedCourseID == courses[3].id })
+    }
+
+    @Test func conversationAvailabilityCreatesReviewableWorkSessionWithoutInventingRecurringPreference() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Europe/Madrid") ?? .current
+        let referenceDate = calendar.date(from: DateComponents(year: 2026, month: 10, day: 10, hour: 12)) ?? Date()
+        let course = Course(name: "Accounting II", code: "ACC2")
+        let task = AcademicTask(title: "Prepare Test 2", dueDate: calendar.date(from: DateComponents(year: 2026, month: 10, day: 15)) ?? referenceDate, priority: .high, estimatedDuration: 5400, course: course)
+
+        let proposal = ConversationProposalEngine.analyze(
+            message: "J’ai déjà commencé la consolidation, je suis libre mercredi après-midi et je veux préparer le test jeudi.",
+            referenceDate: referenceDate,
+            timeZone: calendar.timeZone,
+            courses: [course],
+            tasks: [task],
+            studyBlocks: []
+        )
+
+        #expect(proposal.actions.contains { $0.kind == .updateProgress && $0.evidence == .needsConfirmation })
+        let sessionAction = proposal.actions.first { $0.kind == .proposeWorkSessions }
+        #expect(sessionAction?.sessions.count == 1)
+        #expect(sessionAction?.missingInformation.contains { $0.localizedCaseInsensitiveContains("Confirm exact time range") } == true)
+    }
+
+    @Test func conversationAvoidsDuplicateTaskProposalWhenExistingTaskMatches() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Europe/Madrid") ?? .current
+        let referenceDate = calendar.date(from: DateComponents(year: 2026, month: 10, day: 10, hour: 12)) ?? Date()
+        let course = Course(name: "Data Structures and Algorithm Design", code: "DSA")
+        let existing = AcademicTask(title: "HW2 (Sliding Window and Hashing) submission", dueDate: calendar.date(from: DateComponents(year: 2026, month: 10, day: 12)) ?? referenceDate, course: course)
+
+        let proposal = ConversationProposalEngine.analyze(
+            message: "Monday 12:\n• Data Structures and Algorithm Design: HW2 (Sliding Window and Hashing) submission",
+            referenceDate: referenceDate,
+            timeZone: calendar.timeZone,
+            courses: [course],
+            tasks: [existing],
+            studyBlocks: []
+        )
+
+        #expect(proposal.actions.first?.kind == .updateTask)
+        #expect(proposal.actions.first?.existingTaskID == existing.id)
     }
 
     @Test func navigationStateClearsCourseDetailWhenChangingSections() {

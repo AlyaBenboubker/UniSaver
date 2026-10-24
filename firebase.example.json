@@ -1,0 +1,18 @@
+{
+  "auth": {
+    "providers": {
+      "emailPassword": true,
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "UniSaver",
+        "supportEmail": "YOUR_AUTHORISED_SUPPORT_EMAIL"
+      }
+    }
+  },
+  "firestore": [
+    {
+      "database": "unisaver",
+      "rules": "Firebase/firestore.rules",
+      "indexes": "Firebase/firestore.indexes.json"
+    }
+  ]
+}

@@ -62,7 +62,7 @@ enum PlannerTaskQuery {
             case .dueToday:
                 matchesFilter = calendar.isDateInToday(task.dueDate)
             case .upcoming:
-                matchesFilter = task.dueDate > Date() && task.status != .completed
+                matchesFilter = task.dueDate != .distantFuture && task.dueDate > Date() && task.status != .completed
             case .completed:
                 matchesFilter = task.status == .completed
             }
@@ -1499,7 +1499,7 @@ private struct PlannerEventDetailView: View {
     private var description: String? {
         switch event {
         case .session(let session): session.sessionDescription.emptyAsNil
-        case .task(let task): task.taskDescription.emptyAsNil
+        case .task(let task): TaskStructureService.visibleDescription(task.taskDescription).emptyAsNil
         case .studyBlock: nil
         case .flashcard(let card): card.back.emptyAsNil
         case .appleCalendar(let event): event.notes?.emptyAsNil

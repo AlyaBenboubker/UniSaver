@@ -55,7 +55,7 @@ struct LibraryView: View {
 
     private var allDisplayItems: [LibraryDisplayItem] {
         var items: [LibraryDisplayItem] = []
-        items += notes.map {
+        items += notes.filter { !QuestionBankSessionService.isProgressNote($0) }.map {
             LibraryDisplayItem(
                 kind: .note,
                 itemID: $0.id.uuidString,

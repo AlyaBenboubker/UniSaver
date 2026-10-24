@@ -6,6 +6,14 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		03797B4A56AC9AD181EC86C7 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 5184A9A5CB61145E50E4D64E /* GoogleSignIn */; };
+		181717495B2021CD526EFF4E /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 3559B5EFCB71B2250F61AECF /* FirebaseStorage */; };
+		3962C279F2FB12AC8211D48C /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 53083B69FBEBEFF643B87A0D /* FirebaseCore */; };
+		8C0D9BC733EB3496BF9114EF /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = BBAACFE7B0EE59C0D6C4010A /* FirebaseAuth */; };
+		B6A2F5749C29C5E04AE41C0B /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = B2103FC50C4F7D927A004A3A /* FirebaseFirestore */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		BD49F6AE301CEA8F0005299E /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +60,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3962C279F2FB12AC8211D48C /* FirebaseCore in Frameworks */,
+				8C0D9BC733EB3496BF9114EF /* FirebaseAuth in Frameworks */,
+				B6A2F5749C29C5E04AE41C0B /* FirebaseFirestore in Frameworks */,
+				181717495B2021CD526EFF4E /* FirebaseStorage in Frameworks */,
+				03797B4A56AC9AD181EC86C7 /* GoogleSignIn in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +125,11 @@
 			);
 			name = UniSaver;
 			packageProductDependencies = (
+				53083B69FBEBEFF643B87A0D /* FirebaseCore */,
+				BBAACFE7B0EE59C0D6C4010A /* FirebaseAuth */,
+				B2103FC50C4F7D927A004A3A /* FirebaseFirestore */,
+				3559B5EFCB71B2250F61AECF /* FirebaseStorage */,
+				5184A9A5CB61145E50E4D64E /* GoogleSignIn */,
 			);
 			productName = UniSaver;
 			productReference = BD49F6A0301CEA8D0005299E /* UniSaver.app */;
@@ -195,6 +213,10 @@
 			);
 			mainGroup = BD49F697301CEA8D0005299E;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				2CB9EAFE8243A943D8F057A5 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				20CBAC82E3448F4F501F1BDF /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = BD49F6A1301CEA8D0005299E /* Products */;
 			projectDirPath = "";
@@ -391,6 +413,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				AUTOMATION_APPLE_EVENTS = NO;
+				CODE_SIGN_ENTITLEMENTS = UniSaver/UniSaver.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = RF7VWT8Q29;
@@ -412,6 +435,7 @@
 				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Configuration/UniSaver-Info.plist";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "UniSaver displays the calendars you select alongside your classes and study plans.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "UniSaver records lecture audio only when you start recording.";
 				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "UniSaver displays the reminder lists you select alongside your academic tasks.";
@@ -431,6 +455,10 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.5;
 				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = alyaben.UniSaver;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -459,6 +487,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				AUTOMATION_APPLE_EVENTS = NO;
+				CODE_SIGN_ENTITLEMENTS = UniSaver/UniSaver.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = RF7VWT8Q29;
@@ -480,6 +509,7 @@
 				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Configuration/UniSaver-Info.plist";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "UniSaver displays the calendars you select alongside your classes and study plans.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "UniSaver records lecture audio only when you start recording.";
 				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "UniSaver displays the reminder lists you select alongside your academic tasks.";
@@ -499,6 +529,10 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.5;
 				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = alyaben.UniSaver;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -532,6 +566,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
 				MACOSX_DEPLOYMENT_TARGET = 26.5;
 				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = alyaben.UniSaverTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -558,6 +593,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
 				MACOSX_DEPLOYMENT_TARGET = 26.5;
 				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = alyaben.UniSaverTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -663,6 +699,53 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		20CBAC82E3448F4F501F1BDF /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 10.0.0;
+			};
+		};
+		2CB9EAFE8243A943D8F057A5 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.19.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		3559B5EFCB71B2250F61AECF /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2CB9EAFE8243A943D8F057A5 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
+		};
+		5184A9A5CB61145E50E4D64E /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 20CBAC82E3448F4F501F1BDF /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+		53083B69FBEBEFF643B87A0D /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2CB9EAFE8243A943D8F057A5 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		B2103FC50C4F7D927A004A3A /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2CB9EAFE8243A943D8F057A5 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		BBAACFE7B0EE59C0D6C4010A /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2CB9EAFE8243A943D8F057A5 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = BD49F698301CEA8D0005299E /* Project object */;
 }

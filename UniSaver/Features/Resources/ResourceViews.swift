@@ -208,6 +208,7 @@ struct ResourceRow: View {
 }
 
 struct ResourceDetailView: View {
+    var readerOnly = false
     @Environment(\.modelContext) private var modelContext
     @Environment(\.scenePhase) private var scenePhase
     @Bindable var resource: AcademicResource
@@ -240,15 +241,15 @@ struct ResourceDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            readerHeader
-            Divider()
+            if !readerOnly { readerHeader; Divider() }
             GeometryReader { proxy in
                 HStack(spacing: 0) {
                     documentWorkspace
                         .frame(minWidth: min(480, max(proxy.size.width - 390, 240)), maxWidth: .infinity, maxHeight: .infinity)
-                    Divider()
-                    studySidebar
-                        .frame(width: max(300, min(390, proxy.size.width * 0.34)))
+                    if !readerOnly {
+                        Divider()
+                        studySidebar.frame(width: max(300, min(390, proxy.size.width * 0.34)))
+                    }
                 }
             }
         }

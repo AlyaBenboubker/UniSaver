@@ -10,6 +10,7 @@ struct TaskFormView: View {
     @State private var title: String
     @State private var taskDescription: String
     @State private var dueDate: Date
+    @State private var hasDeadline: Bool
     @State private var priority: AcademicTaskPriority
     @State private var status: AcademicTaskStatus
     @State private var estimatedMinutes: Double
@@ -20,8 +21,9 @@ struct TaskFormView: View {
     init(task: AcademicTask? = nil, initialCourse: Course? = nil, initialChapter: Chapter? = nil, initialSession: ClassSession? = nil, initialDueDate: Date? = nil) {
         self.task = task
         _title = State(initialValue: task?.title ?? "")
-        _taskDescription = State(initialValue: task?.taskDescription ?? "")
-        _dueDate = State(initialValue: task?.dueDate ?? initialDueDate ?? Calendar.current.date(byAdding: .day, value: 1, to: .now) ?? .now)
+        _taskDescription = State(initialValue: task.map { TaskStructureService.visibleDescription($0.taskDescription) } ?? "")
+        _dueDate = State(initialValue: task?.dueDate == .distantFuture ? .now : task?.dueDate ?? initialDueDate ?? .now)
+        _hasDeadline = State(initialValue: task.map { $0.dueDate != .distantFuture } ?? (initialDueDate != nil))
         _priority = State(initialValue: task?.priority ?? .medium)
         _status = State(initialValue: task?.status ?? .todo)
         _estimatedMinutes = State(initialValue: (task?.estimatedDuration ?? 3600) / 60)
@@ -55,7 +57,8 @@ struct TaskFormView: View {
                         .textFieldStyle(.roundedBorder)
                     TextField("Description", text: $taskDescription, axis: .vertical)
                         .textFieldStyle(.roundedBorder)
-                    DatePicker("Échéance", selection: $dueDate)
+                    Toggle("Échéance connue", isOn: $hasDeadline)
+                    if hasDeadline { DatePicker("Échéance", selection: $dueDate) }
                     Picker("Priorité", selection: $priority) {
                         ForEach(AcademicTaskPriority.allCases) { priority in
                             Text(priority.title).tag(priority)
@@ -66,7 +69,7 @@ struct TaskFormView: View {
                             Text(status.title).tag(status)
                         }
                     }
-                    Stepper("Estimation \(Int(estimatedMinutes)) min", value: $estimatedMinutes, in: 15...480, step: 15)
+                    Stepper("Estimation \(Int(estimatedMinutes)) min", value: $estimatedMinutes, in: 0...480, step: 15)
                 }
             }
 
@@ -111,8 +114,8 @@ struct TaskFormView: View {
             try AcademicValidationService.validateTask(title: title, estimatedDuration: duration, course: selectedCourse, chapter: selectedChapter)
             if let task {
                 task.title = title
-                task.taskDescription = taskDescription
-                task.dueDate = dueDate
+                task.taskDescription = TaskStructureService.preservingApprovalMetadata(taskDescription, from: task.taskDescription)
+                task.dueDate = hasDeadline ? dueDate : .distantFuture
                 task.priority = priority
                 task.status = status
                 task.estimatedDuration = duration
@@ -120,7 +123,7 @@ struct TaskFormView: View {
                 task.chapter = selectedChapter
                 task.updatedAt = .now
             } else {
-                modelContext.insert(AcademicTask(title: title, taskDescription: taskDescription, dueDate: dueDate, priority: priority, status: status, estimatedDuration: duration, course: selectedCourse, chapter: selectedChapter))
+                modelContext.insert(AcademicTask(title: title, taskDescription: taskDescription, dueDate: hasDeadline ? dueDate : .distantFuture, priority: priority, status: status, estimatedDuration: duration, course: selectedCourse, chapter: selectedChapter))
             }
             try modelContext.save()
             dismiss()

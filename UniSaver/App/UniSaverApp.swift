@@ -1,11 +1,13 @@
 import SwiftData
 import SwiftUI
+import FirebaseCore
 
 @main
 struct UniSaverApp: App {
     private let modelContainer: ModelContainer
 
     init() {
+        FirebaseApp.configure()
         do {
             modelContainer = try PersistenceController.appContainer()
         } catch {
@@ -15,8 +17,11 @@ struct UniSaverApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            WorkspaceAppRootView()
                 .modelContainer(modelContainer)
+                .onOpenURL { url in
+                    _ = AccountSyncService.handleOpenURL(url)
+                }
         }
         .commands {
             CommandMenu("UniSaver") {
@@ -37,6 +42,11 @@ struct UniSaverApp: App {
                     NotificationCenter.default.post(name: .selectAppSection, object: AppSection.study)
                 }
                 .keyboardShortcut("3", modifiers: [.command])
+                Divider()
+                Button("UniSaver Agent") {
+                    NotificationCenter.default.post(name: .openGlobalAgent, object: nil)
+                }
+                .keyboardShortcut("a", modifiers: [.command, .shift])
             }
             CommandMenu("Workspace") {
                 Button("Reset Workspace Choice") {
@@ -65,4 +75,5 @@ extension Notification.Name {
     static let startEmptyWorkspace = Notification.Name("startEmptyWorkspace")
     static let courseCreated = Notification.Name("courseCreated")
     static let openPlannerTasks = Notification.Name("openPlannerTasks")
+    static let openGlobalAgent = Notification.Name("openGlobalAgent")
 }

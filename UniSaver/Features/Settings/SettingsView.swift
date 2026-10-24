@@ -6,6 +6,8 @@ struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var workspaces: [AppWorkspace]
     @Query(sort: \Course.name) private var courses: [Course]
+    @Query(sort: \AcademicTask.dueDate) private var tasks: [AcademicTask]
+    @Query(sort: \StudyNote.updatedAt, order: .reverse) private var notes: [StudyNote]
     @AppStorage("moodleInstitutionURL") private var moodleInstitutionURL = ""
     @State private var pendingAction: SettingsWorkspaceAction?
     @State private var statusMessage: String?
@@ -19,6 +21,15 @@ struct SettingsView: View {
     @State private var remindersStatus = EKEventStore.authorizationStatus(for: .reminder)
     @State private var calendarMessage: String?
     @State private var remindersMessage: String?
+    @State private var accountEmail = ""
+    @State private var accountPassword = ""
+    @State private var isCreatingAccount = false
+    @State private var passwordResetMessage: String?
+    @State private var accountStatus: UniSaverAccountStatus = .signedOut
+    @State private var isCheckingAccount = false
+    @State private var accountSyncState: UniSaverSyncState = .needsAttention
+    @State private var accountSyncMessage: String?
+    @State private var isSyncingAccount = false
     @State private var aiAPIKeys: [AIRevisionProviderID: String] = [:]
     @State private var aiStatusMessages: [AIRevisionProviderID: String] = [:]
     @State private var aiErrorMessages: [AIRevisionProviderID: String] = [:]
@@ -72,6 +83,7 @@ struct SettingsView: View {
                 }
 
                 settingsSection("Connexions", systemImage: "link") {
+                    accountSettingsCard
                     aiSettingsCard
                     moodleSettingsCard
                     appleConnectionCard(
@@ -190,6 +202,7 @@ struct SettingsView: View {
             Text(pendingAction?.message ?? "")
         }
         .task {
+            await restoreAccountSession()
             moodleMetadata = moodleMetadataStore.load()
             if (try? moodleKeychain.token()) != nil {
                 moodleStatusMessage = "Authorized token stored in Keychain."
@@ -234,6 +247,189 @@ struct SettingsView: View {
         }
         .padding()
         .deskCard()
+    }
+
+    private var accountSettingsCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top) {
+                Image(systemName: "person.crop.circle.badge.checkmark")
+                    .foregroundStyle(StudyDeskTheme.accentPrimary)
+                    .frame(width: 34, height: 34)
+                    .background(StudyDeskTheme.accentPrimary.opacity(0.12), in: Circle())
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("UniSaver account")
+                        .font(.headline)
+                    Text("Sign in with your email or Google account to sync your study data securely with Firebase.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+
+            switch accountStatus {
+            case .signedIn(let account):
+                HStack {
+                    metric("Account", account.firstName)
+                    metric("Email", account.email)
+                    metric("Sync", accountSyncState.rawValue)
+                }
+
+                if let accountSyncMessage {
+                    Label(accountSyncMessage, systemImage: accountSyncState == .synced ? "checkmark.circle" : "exclamationmark.triangle")
+                        .font(.callout)
+                        .foregroundStyle(accountSyncState == .synced ? .green : .orange)
+                }
+
+                HStack {
+                    Button("Sync now", systemImage: "arrow.triangle.2.circlepath") {
+                        Task { await syncAccountData() }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(isSyncingAccount)
+
+                    Button("Sign out") {
+                        Task { await signOutAccount() }
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(isSyncingAccount)
+
+                    if isSyncingAccount {
+                        ProgressView()
+                            .controlSize(.small)
+                    }
+                }
+            case .restoring:
+                Label("Restoring session…", systemImage: "arrow.triangle.2.circlepath")
+                    .foregroundStyle(.secondary)
+            case .signedOut:
+                accountSignInForm
+            case .unavailable(let message):
+                Label(message, systemImage: "server.rack")
+                    .font(.callout)
+                    .foregroundStyle(.orange)
+                accountSignInForm
+            case .error(let message):
+                Label(message, systemImage: "exclamationmark.triangle")
+                    .font(.callout)
+                    .foregroundStyle(.red)
+                accountSignInForm
+            }
+        }
+        .padding()
+        .background(StudyDeskTheme.surfaceTinted, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private var accountSignInForm: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            TextField("Email", text: $accountEmail)
+                .textContentType(.emailAddress)
+                .textFieldStyle(.roundedBorder)
+            SecureField("Password", text: $accountPassword)
+                .textContentType(isCreatingAccount ? .newPassword : .password)
+                .textFieldStyle(.roundedBorder)
+            Toggle("Create a new account", isOn: $isCreatingAccount)
+            HStack {
+                Button(isCreatingAccount ? "Create account" : "Sign in") {
+                    Task {
+                        isCheckingAccount = true
+                        defer { isCheckingAccount = false }
+                        accountStatus = await AccountSyncService().signInWithEmail(
+                            accountEmail, password: accountPassword, createAccount: isCreatingAccount
+                        )
+                        accountSyncState = syncState(for: accountStatus)
+                        if case .signedIn = accountStatus { accountPassword = "" }
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(accountEmail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || accountPassword.isEmpty)
+                Button("Continue with Google") {
+                    Task { await signInWithGoogle() }
+                }
+                .buttonStyle(.bordered)
+                if isCheckingAccount { ProgressView().controlSize(.small) }
+            }
+            Button("Reset password") {
+                Task {
+                    isCheckingAccount = true
+                    defer { isCheckingAccount = false }
+                    do {
+                        try await AccountSyncService().resetPassword(email: accountEmail)
+                        passwordResetMessage = "Password reset requested. Check your email for instructions."
+                    } catch {
+                        passwordResetMessage = error.localizedDescription
+                    }
+                }
+            }
+            .disabled(accountEmail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            if let passwordResetMessage {
+                Text(passwordResetMessage).font(.callout).foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: 480, alignment: .leading)
+        .disabled(isCheckingAccount)
+    }
+
+    @MainActor
+    private func restoreAccountSession() async {
+        isCheckingAccount = true
+        accountStatus = .restoring
+        accountStatus = await AccountSyncService().restoreSession()
+        accountSyncState = syncState(for: accountStatus)
+        isCheckingAccount = false
+    }
+
+    @MainActor
+    private func signInWithGoogle() async {
+        isCheckingAccount = true
+        accountStatus = await AccountSyncService().signInWithGoogle()
+        accountSyncState = syncState(for: accountStatus)
+        isCheckingAccount = false
+    }
+
+    @MainActor
+    private func signOutAccount() async {
+        isCheckingAccount = true
+        accountStatus = await AccountSyncService().signOut()
+        accountSyncState = .needsAttention
+        accountSyncMessage = nil
+        isCheckingAccount = false
+    }
+
+    @MainActor
+    private func syncAccountData() async {
+        isSyncingAccount = true
+        accountSyncState = .syncing
+        accountSyncMessage = "Syncing courses, tasks, completed work sessions and supporting files…"
+        do {
+            let ledgerNote = TaskExecutionLedgerStore.ledgerNote(in: notes, context: modelContext)
+            let ledger = TaskExecutionLedgerStore.decode(ledgerNote)
+            let summary = try await AccountSyncService().syncFirstSlice(
+                courses: courses,
+                tasks: tasks,
+                taskLedger: ledger
+            )
+            accountSyncState = summary.state
+            accountSyncMessage = summary.message
+        } catch {
+            accountSyncState = .needsAttention
+            accountSyncMessage = error.localizedDescription
+        }
+        isSyncingAccount = false
+    }
+
+    private func syncState(for status: UniSaverAccountStatus) -> UniSaverSyncState {
+        switch status {
+        case .signedIn:
+            .needsAttention
+        case .restoring:
+            .syncing
+        case .signedOut:
+            .needsAttention
+        case .unavailable:
+            .needsAttention
+        case .error:
+            .needsAttention
+        }
     }
 
     private func perform(_ action: SettingsWorkspaceAction) {

@@ -26,3 +26,34 @@ xcuserdata/
 *.profraw
 MigrationBackups/
 tmp/
+
+# Private configuration and credentials
+.env
+.env.*
+!.env.example
+GoogleService-Info.plist
+*.p12
+*.pfx
+*.mobileprovision
+*.key
+*.pem
+*service-account*.json
+*serviceAccount*.json
+
+# Local stores, student materials, screenshots and parallel checkouts
+*.sqlite
+*.sqlite-*
+*.store
+*.store-*
+.worktrees/
+.agents/
+RevisionReview/
+ValidationFixtures/*user-supplied*
+AI_LOG/
+
+# Personal diagnostics and deployment contact configuration
+CRASH_INVESTIGATION.md
+QUESTION_BANK_VERIFICATION.md
+firebase.json
+!firebase.example.json
+*.xcsettings

@@ -59,7 +59,7 @@ enum AcademicValidationService {
         guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw AcademicValidationError.emptyName
         }
-        guard estimatedDuration > 0 else {
+        guard estimatedDuration.isFinite && estimatedDuration >= 0 else {
             throw AcademicValidationError.invalidDuration
         }
         if let course, let chapter, chapter.course !== course {

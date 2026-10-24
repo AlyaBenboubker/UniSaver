@@ -1,0 +1,1358 @@
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 1: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 1. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 2: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 2. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 3: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 3. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 4: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 4. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 5: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 5. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 6: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 6. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 7: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 7. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 8: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 8. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 9: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 9. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 10: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 10. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 11: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 11. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 12: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 12. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 13: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 13. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 14: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 14. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 15: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 15. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 16: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 16. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 17: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 17. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 18: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 18. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 19: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 19. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 20: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 20. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 21: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 21. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 22: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 22. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 23: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 23. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 24: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 24. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 25: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 25. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 26: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 26. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 27: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 27. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 28: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 28. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 29: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 29. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 30: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 30. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 31: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 31. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 32: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 32. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 33: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 33. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 34: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 34. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 35: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 35. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 36: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 36. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 37: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 37. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 38: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 38. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 39: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 39. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 40: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 40. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 41: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 41. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 42: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 42. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 43: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 43. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 44: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 44. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 45: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 45. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 46: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 46. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 47: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 47. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 48: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 48. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 49: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 49. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 50: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 50. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 51: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 51. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 52: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 52. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 53: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 53. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 54: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 54. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 55: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 55. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 56: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 56. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 57: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 57. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 58: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 58. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 59: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 59. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 60: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 60. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 61: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 61. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 62: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 62. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 63: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 63. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 64: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 64. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 65: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 65. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 66: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 66. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 67: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 67. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 68: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 68. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Select
+Prompt: Synthetic accounting exercise 69: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: A,B
+Explanation: Synthetic explanation 69. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Select
+Prompt: Synthetic accounting exercise 70: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: A,B
+Explanation: Synthetic explanation 70. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Select
+Prompt: Synthetic accounting exercise 71: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: A,B
+Explanation: Synthetic explanation 71. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Select
+Prompt: Synthetic accounting exercise 72: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: A,B
+Explanation: Synthetic explanation 72. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Select
+Prompt: Synthetic accounting exercise 73: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: A,B
+Explanation: Synthetic explanation 73. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Select
+Prompt: Synthetic accounting exercise 74: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: A,B
+Explanation: Synthetic explanation 74. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Select
+Prompt: Synthetic accounting exercise 75: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: A,B
+Explanation: Synthetic explanation 75. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Select
+Prompt: Synthetic accounting exercise 76: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: A,B
+Explanation: Synthetic explanation 76. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Select
+Prompt: Synthetic accounting exercise 77: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: A,B
+Explanation: Synthetic explanation 77. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Select
+Prompt: Synthetic accounting exercise 78: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: A,B
+Explanation: Synthetic explanation 78. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Select
+Prompt: Synthetic accounting exercise 79: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: A,B
+Explanation: Synthetic explanation 79. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: True/False
+Prompt: Synthetic accounting exercise 80: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: True
+Explanation: Synthetic explanation 80. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: True/False
+Prompt: Synthetic accounting exercise 81: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: True
+Explanation: Synthetic explanation 81. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: True/False
+Prompt: Synthetic accounting exercise 82: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: True
+Explanation: Synthetic explanation 82. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: True/False
+Prompt: Synthetic accounting exercise 83: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: True
+Explanation: Synthetic explanation 83. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: True/False
+Prompt: Synthetic accounting exercise 84: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: True
+Explanation: Synthetic explanation 84. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: True/False
+Prompt: Synthetic accounting exercise 85: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: True
+Explanation: Synthetic explanation 85. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: True/False
+Prompt: Synthetic accounting exercise 86: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: True
+Explanation: Synthetic explanation 86. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: True/False
+Prompt: Synthetic accounting exercise 87: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: True
+Explanation: Synthetic explanation 87. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: True/False
+Prompt: Synthetic accounting exercise 88: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: True
+Explanation: Synthetic explanation 88. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: True/False
+Prompt: Synthetic accounting exercise 89: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: True
+Explanation: Synthetic explanation 89. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: True/False
+Prompt: Synthetic accounting exercise 90: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: True
+Explanation: Synthetic explanation 90. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: True/False
+Prompt: Synthetic accounting exercise 91: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: True
+Explanation: Synthetic explanation 91. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: True/False
+Prompt: Synthetic accounting exercise 92: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: True
+Explanation: Synthetic explanation 92. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: True/False
+Prompt: Synthetic accounting exercise 93: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: True
+Explanation: Synthetic explanation 93. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: True/False
+Prompt: Synthetic accounting exercise 94: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: True
+Explanation: Synthetic explanation 94. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: True/False
+Prompt: Synthetic accounting exercise 95: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: True
+Explanation: Synthetic explanation 95. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: True/False
+Prompt: Synthetic accounting exercise 96: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: True
+Explanation: Synthetic explanation 96. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: True/False
+Prompt: Synthetic accounting exercise 97: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: True
+Explanation: Synthetic explanation 97. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: True/False
+Prompt: Synthetic accounting exercise 98: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: True
+Explanation: Synthetic explanation 98. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: True/False
+Prompt: Synthetic accounting exercise 99: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: True
+Explanation: Synthetic explanation 99. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 100: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: -16000
+Explanation: Synthetic explanation 100. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 101: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 1533.8
+Explanation: Synthetic explanation 101. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 102: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 102
+Explanation: Synthetic explanation 102. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 103: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 103
+Explanation: Synthetic explanation 103. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 104: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 104
+Explanation: Synthetic explanation 104. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 105: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 105
+Explanation: Synthetic explanation 105. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 106: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 106
+Explanation: Synthetic explanation 106. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 107: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 107
+Explanation: Synthetic explanation 107. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 108: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 108
+Explanation: Synthetic explanation 108. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 109: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 109
+Explanation: Synthetic explanation 109. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 110: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 110
+Explanation: Synthetic explanation 110. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 111: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 111
+Explanation: Synthetic explanation 111. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 112: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 112
+Explanation: Synthetic explanation 112. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 113: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 113
+Explanation: Synthetic explanation 113. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 114: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 114
+Explanation: Synthetic explanation 114. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 115: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 115
+Explanation: Synthetic explanation 115. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 116: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 116
+Explanation: Synthetic explanation 116. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 117: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 117
+Explanation: Synthetic explanation 117. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 118: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 118
+Explanation: Synthetic explanation 118. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 119: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 119
+Explanation: Synthetic explanation 119. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 120: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 120
+Explanation: Synthetic explanation 120. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 121: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 121
+Explanation: Synthetic explanation 121. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 122: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 122
+Explanation: Synthetic explanation 122. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 123: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 123
+Explanation: Synthetic explanation 123. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 124: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 124
+Explanation: Synthetic explanation 124. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 125: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 125
+Explanation: Synthetic explanation 125. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 126: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 126
+Explanation: Synthetic explanation 126. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 127: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 127
+Explanation: Synthetic explanation 127. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 128: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 128
+Explanation: Synthetic explanation 128. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 129: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 129
+Explanation: Synthetic explanation 129. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 130: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 130
+Explanation: Synthetic explanation 130. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 131: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 131
+Explanation: Synthetic explanation 131. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 132: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 132
+Explanation: Synthetic explanation 132. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 133: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 133
+Explanation: Synthetic explanation 133. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 134: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 134
+Explanation: Synthetic explanation 134. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 135: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 135
+Explanation: Synthetic explanation 135. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 136: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 136
+Explanation: Synthetic explanation 136. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 137: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 137
+Explanation: Synthetic explanation 137. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 138: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 138
+Explanation: Synthetic explanation 138. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Short Answer
+Prompt: Synthetic accounting exercise 139: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+Correct: 139
+Explanation: Synthetic explanation 139. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill
+
+---
+QUESTION
+Type: Multiple Choice
+Prompt: Synthetic accounting exercise 140: consider a fictional balance of 100 euros. Which result follows from the explicitly stated calculation? This is artificial test data and contains no teacher material.
+A: Synthetic first option
+B: Synthetic second option
+C: Synthetic third option
+Correct: B
+Explanation: Synthetic explanation 140. The fixture checks structural preservation and numeric parsing, not accounting knowledge. Every example is invented solely for automated verification.
+Tags: Accounting II, Goodwill

@@ -97,6 +97,8 @@ extension AppSection {
 @Observable
 final class AppNavigationState {
     var selectedSection: AppSection = .today
+    var focusTask: AcademicTask?
+    var selectedTaskID: UUID?
     var openedCourseID: UUID?
     var requestedCourseTab: CourseWorkspaceTab?
     var plannerTaskFilter: PlannerTaskFilter = .open
@@ -104,6 +106,7 @@ final class AppNavigationState {
     @ObservationIgnored var noteNavigationGuard: ((AppSection) -> Bool)?
 
     func select(_ section: AppSection) {
+        selectedTaskID = nil
         selectedSection = section
         if section != .classes {
             openedCourseID = nil

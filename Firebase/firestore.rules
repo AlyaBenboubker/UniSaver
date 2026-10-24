@@ -1,0 +1,206 @@
+rules_version = '2';
+// Private users/{uid} profiles and the four sync collections below.
+// Sync record IDs are UUID strings; dates are ISO 8601 strings from JSONEncoder.
+// Optional Codable fields are omitted. Strings are bounded; arrays contain
+// at most 50 bounded strings. Historic local dates are allowed for imports.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner(uid) { return request.auth != null && request.auth.uid == uid; }
+    function str(value, max) { return value is string && value.size() <= max; }
+    function date(value) { return str(value, 40) && value.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}T.*Z$'); }
+    function item(values, index) { return values.size() <= index || str(values[index], 1000); }
+    function strings(values) {
+      return values is list && values.size() <= 50
+        && item(values, 0)
+        && item(values, 1)
+        && item(values, 2)
+        && item(values, 3)
+        && item(values, 4)
+        && item(values, 5)
+        && item(values, 6)
+        && item(values, 7)
+        && item(values, 8)
+        && item(values, 9)
+        && item(values, 10)
+        && item(values, 11)
+        && item(values, 12)
+        && item(values, 13)
+        && item(values, 14)
+        && item(values, 15)
+        && item(values, 16)
+        && item(values, 17)
+        && item(values, 18)
+        && item(values, 19)
+        && item(values, 20)
+        && item(values, 21)
+        && item(values, 22)
+        && item(values, 23)
+        && item(values, 24)
+        && item(values, 25)
+        && item(values, 26)
+        && item(values, 27)
+        && item(values, 28)
+        && item(values, 29)
+        && item(values, 30)
+        && item(values, 31)
+        && item(values, 32)
+        && item(values, 33)
+        && item(values, 34)
+        && item(values, 35)
+        && item(values, 36)
+        && item(values, 37)
+        && item(values, 38)
+        && item(values, 39)
+        && item(values, 40)
+        && item(values, 41)
+        && item(values, 42)
+        && item(values, 43)
+        && item(values, 44)
+        && item(values, 45)
+        && item(values, 46)
+        && item(values, 47)
+        && item(values, 48)
+        && item(values, 49)
+        ;
+    }
+    function isValidUser(uid) {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['userId', 'email', 'displayName', 'photoURL', 'updatedAt', 'lastSeenAt', 'schemaVersion'])
+        && d.keys().hasAll(['userId', 'email', 'displayName', 'schemaVersion'])
+        && d.userId == uid && str(d.email, 320) && str(d.displayName, 200)
+        && (!('photoURL' in d) || (str(d.photoURL, 2048) && (d.photoURL == '' || d.photoURL.matches('^https://.*'))))
+        && (!('updatedAt' in d) || (d.updatedAt is timestamp && d.updatedAt <= request.time + duration.value(5, 'm')))
+        && (!('lastSeenAt' in d) || (d.lastSeenAt is timestamp && d.lastSeenAt <= request.time + duration.value(5, 'm')))
+        && d.schemaVersion == 1;
+    }
+    // courses: id:String, userID:String, deviceID:String, name:String, code:String, courseDescription:String, professorName:String, professorEmail:String?, defaultRoom:String?, colorIdentifier:String, symbolName:String?, credits:Double?, evaluationMethod:String?, startDate:Date?, endDate:Date?, status:String, isArchived:Bool, createdAt:Date, updatedAt:Date, syncedAt:Date, schemaVersion:Int
+    function validSyncedCourseRecord(uid, id) {
+      let d = request.resource.data;
+      return d.keys().hasAll(["id", "userID", "deviceID", "name", "code", "courseDescription", "professorName", "colorIdentifier", "status", "isArchived", "createdAt", "updatedAt", "syncedAt", "schemaVersion"])
+        && d.keys().hasOnly(["id", "userID", "deviceID", "name", "code", "courseDescription", "professorName", "professorEmail", "defaultRoom", "colorIdentifier", "symbolName", "credits", "evaluationMethod", "startDate", "endDate", "status", "isArchived", "createdAt", "updatedAt", "syncedAt", "schemaVersion"])
+        && d.id == id && d.userID == uid
+        && (str(d.id, 1000))
+        && (str(d.userID, 1000))
+        && (str(d.deviceID, 1000))
+        && (str(d.name, 1000))
+        && (str(d.code, 1000))
+        && (str(d.courseDescription, 50000))
+        && (str(d.professorName, 1000))
+        && (!('professorEmail' in d) || (str(d.professorEmail, 1000)))
+        && (!('defaultRoom' in d) || (str(d.defaultRoom, 1000)))
+        && (str(d.colorIdentifier, 1000))
+        && (!('symbolName' in d) || (str(d.symbolName, 1000)))
+        && (!('credits' in d) || (d.credits is number && d.credits >= 0 && d.credits <= 1000000000))
+        && (!('evaluationMethod' in d) || (str(d.evaluationMethod, 1000)))
+        && (!('startDate' in d) || (date(d.startDate)))
+        && (!('endDate' in d) || (date(d.endDate)))
+        && (str(d.status, 1000) && d.status in ["notStarted", "inProgress", "completed", "needsReview", "mastered"])
+        && (d.isArchived is bool)
+        && (date(d.createdAt))
+        && (date(d.updatedAt))
+        && (date(d.syncedAt))
+        && (d.schemaVersion == 1)
+        ;
+    }
+    // tasks: id:String, userID:String, deviceID:String, title:String, taskDescription:String, dueDate:Date, priority:String, status:String, estimatedDuration:TimeInterval, courseID:String?, chapterID:String?, sessionID:String?, createdAt:Date, updatedAt:Date, syncedAt:Date, schemaVersion:Int
+    function validSyncedTaskRecord(uid, id) {
+      let d = request.resource.data;
+      return d.keys().hasAll(["id", "userID", "deviceID", "title", "taskDescription", "dueDate", "priority", "status", "estimatedDuration", "createdAt", "updatedAt", "syncedAt", "schemaVersion"])
+        && d.keys().hasOnly(["id", "userID", "deviceID", "title", "taskDescription", "dueDate", "priority", "status", "estimatedDuration", "courseID", "chapterID", "sessionID", "createdAt", "updatedAt", "syncedAt", "schemaVersion"])
+        && d.id == id && d.userID == uid
+        && (str(d.id, 1000))
+        && (str(d.userID, 1000))
+        && (str(d.deviceID, 1000))
+        && (str(d.title, 1000))
+        && (str(d.taskDescription, 50000))
+        && (date(d.dueDate))
+        && (str(d.priority, 1000) && d.priority in ['low','medium','high','urgent'])
+        && (str(d.status, 1000) && d.status in ["todo", "inProgress", "completed", "cancelled"])
+        && (d.estimatedDuration is number && d.estimatedDuration >= 0 && d.estimatedDuration <= 1000000000)
+        && (!('courseID' in d) || (str(d.courseID, 1000)))
+        && (!('chapterID' in d) || (str(d.chapterID, 1000)))
+        && (!('sessionID' in d) || (str(d.sessionID, 1000)))
+        && (date(d.createdAt))
+        && (date(d.updatedAt))
+        && (date(d.syncedAt))
+        && (d.schemaVersion == 1)
+        ;
+    }
+    // workSessions: id:String, userID:String, deviceID:String, taskID:String, courseID:String?, startedAt:Date, endedAt:Date, recordedSeconds:TimeInterval?, completedSubtaskTitles:[String], finishedTask:Bool, proofLevel:String, blocker:String?, note:String, attachmentIDs:[String], syncedAt:Date, schemaVersion:Int
+    function validSyncedWorkSessionRecord(uid, id) {
+      let d = request.resource.data;
+      return d.keys().hasAll(["id", "userID", "deviceID", "taskID", "startedAt", "endedAt", "completedSubtaskTitles", "finishedTask", "proofLevel", "note", "attachmentIDs", "syncedAt", "schemaVersion"])
+        && d.keys().hasOnly(["id", "userID", "deviceID", "taskID", "courseID", "startedAt", "endedAt", "recordedSeconds", "completedSubtaskTitles", "finishedTask", "proofLevel", "blocker", "note", "attachmentIDs", "syncedAt", "schemaVersion"])
+        && d.id == id && d.userID == uid
+        && (str(d.id, 1000))
+        && (str(d.userID, 1000))
+        && (str(d.deviceID, 1000))
+        && (str(d.taskID, 1000))
+        && (!('courseID' in d) || (str(d.courseID, 1000)))
+        && (date(d.startedAt))
+        && (date(d.endedAt))
+        && (!('recordedSeconds' in d) || (d.recordedSeconds is number && d.recordedSeconds >= 0 && d.recordedSeconds <= 1000000000))
+        && (strings(d.completedSubtaskTitles))
+        && (d.finishedTask is bool)
+        && (str(d.proofLevel, 1000) && d.proofLevel in ['selfReported','appRecorded','sourceConfirmed','supportingAttachment'])
+        && (!('blocker' in d) || (str(d.blocker, 1000) && d.blocker in ['missingInstructions','dontUnderstand','waitingForSomeone','notEnoughTime','other']))
+        && (str(d.note, 50000))
+        && (strings(d.attachmentIDs))
+        && (date(d.syncedAt))
+        && (d.schemaVersion == 1)
+        ;
+    }
+    // evidenceAttachments: id:String, userID:String, deviceID:String, sessionID:String, kind:String, displayName:String, mimeType:String?, urlString:String?, note:String, fileSize:Int64?, contentHash:String?, uploadState:String, storagePath:String?, createdAt:Date, syncedAt:Date, schemaVersion:Int
+    function validSyncedEvidenceAttachmentRecord(uid, id) {
+      let d = request.resource.data;
+      return d.keys().hasAll(["id", "userID", "deviceID", "sessionID", "kind", "displayName", "note", "uploadState", "createdAt", "syncedAt", "schemaVersion"])
+        && d.keys().hasOnly(["id", "userID", "deviceID", "sessionID", "kind", "displayName", "mimeType", "urlString", "note", "fileSize", "contentHash", "uploadState", "storagePath", "createdAt", "syncedAt", "schemaVersion"])
+        && d.id == id && d.userID == uid
+        && (str(d.id, 1000))
+        && (str(d.userID, 1000))
+        && (str(d.deviceID, 1000))
+        && (str(d.sessionID, 1000))
+        && (str(d.kind, 1000) && d.kind in ['file','screenshot','link','note'])
+        && (str(d.displayName, 1000))
+        && (!('mimeType' in d) || (str(d.mimeType, 1000)))
+        && (!('urlString' in d) || (str(d.urlString, 2048) && d.urlString.matches('^https?://.*')))
+        && (str(d.note, 50000))
+        && (!('fileSize' in d) || (d.fileSize is number && d.fileSize >= 0 && d.fileSize <= 1000000000))
+        && (!('contentHash' in d) || (str(d.contentHash, 1000)))
+        && (str(d.uploadState, 1000) && d.uploadState in ['localOnly','pendingUpload','uploaded','failed'])
+        && (!('storagePath' in d) || (str(d.storagePath, 2048) && d.storagePath.matches('^users/' + uid + '/evidence/.*')))
+        && (date(d.createdAt))
+        && (date(d.syncedAt))
+        && (d.schemaVersion == 1)
+        ;
+    }
+    match /users/{uid} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid) && isValidUser(uid);
+      match /courses/{id} {
+        allow read, delete: if isOwner(uid);
+        allow create: if isOwner(uid) && exists(/databases/$(database)/documents/users/$(uid)) && validSyncedCourseRecord(uid, id);
+        allow update: if isOwner(uid) && exists(/databases/$(database)/documents/users/$(uid)) && validSyncedCourseRecord(uid, id)
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["userID", "id", "createdAt"]);
+      }
+      match /tasks/{id} {
+        allow read, delete: if isOwner(uid);
+        allow create: if isOwner(uid) && exists(/databases/$(database)/documents/users/$(uid)) && validSyncedTaskRecord(uid, id);
+        allow update: if isOwner(uid) && exists(/databases/$(database)/documents/users/$(uid)) && validSyncedTaskRecord(uid, id)
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["userID", "id", "createdAt"]);
+      }
+      match /workSessions/{id} {
+        allow read, delete: if isOwner(uid);
+        allow create: if isOwner(uid) && exists(/databases/$(database)/documents/users/$(uid)) && validSyncedWorkSessionRecord(uid, id);
+        allow update: if isOwner(uid) && exists(/databases/$(database)/documents/users/$(uid)) && validSyncedWorkSessionRecord(uid, id)
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["userID", "id", "startedAt", "endedAt", "taskID"]);
+      }
+      match /evidenceAttachments/{id} {
+        allow read, delete: if isOwner(uid);
+        allow create: if isOwner(uid) && exists(/databases/$(database)/documents/users/$(uid)) && validSyncedEvidenceAttachmentRecord(uid, id);
+        allow update: if isOwner(uid) && exists(/databases/$(database)/documents/users/$(uid)) && validSyncedEvidenceAttachmentRecord(uid, id)
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["userID", "id", "createdAt"]);
+      }
+    }
+  }
+}

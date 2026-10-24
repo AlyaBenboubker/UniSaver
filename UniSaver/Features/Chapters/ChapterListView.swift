@@ -181,7 +181,7 @@ struct ChapterDetailView: View {
     }
 
     private var chapterNotes: [StudyNote] {
-        notes.filter { $0.chapter?.id == chapter.id || $0.session?.chapter?.id == chapter.id || $0.resource?.chapter?.id == chapter.id }
+        notes.filter { !QuestionBankSessionService.isProgressNote($0) && ($0.chapter?.id == chapter.id || $0.session?.chapter?.id == chapter.id || $0.resource?.chapter?.id == chapter.id) }
     }
 
     private var chapterRecordings: [CourseRecording] {
@@ -898,7 +898,7 @@ private struct ChapterContentAssociationSheet: View {
     private var taskSection: some View {
         Section("Tâches") {
             ForEach(filtered(tasks)) { task in
-                associationRow(title: task.title, detail: UniDateFormatters.dayMonth.string(from: task.dueDate), isLinked: task.chapter?.id == chapter.id) {
+                associationRow(title: task.title, detail: TaskStructureService.deadlineLabel(for: task), isLinked: task.chapter?.id == chapter.id) {
                     task.course = course ?? task.course
                     task.chapter = chapter
                     task.updatedAt = .now
@@ -1587,7 +1587,7 @@ private struct ChapterTaskRow: View {
                     .foregroundStyle(task.status == .completed ? .green : CourseColor.amber.color)
             }
             Spacer()
-            Text(UniDateFormatters.dayMonth.string(from: task.dueDate))
+            Text(TaskStructureService.deadlineLabel(for: task))
                 .font(.caption)
                 .foregroundStyle(.secondary)
             Menu("Task Actions", systemImage: "ellipsis.circle") {
@@ -1684,6 +1684,7 @@ struct EssayAssignmentFormView: View {
 
     private var candidateNotes: [StudyNote] {
         notes.filter { note in
+            guard !QuestionBankSessionService.isProgressNote(note) else { return false }
             if let initialChapter {
                 return note.chapter?.id == initialChapter.id || note.session?.chapter?.id == initialChapter.id || note.resource?.chapter?.id == initialChapter.id
             }

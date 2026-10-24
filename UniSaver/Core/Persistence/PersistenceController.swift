@@ -879,6 +879,19 @@ enum PersistenceController {
     static let schema = Schema(versionedSchema: UniSaverSchemaV10.self)
 
     static func appContainer() throws -> ModelContainer {
+        #if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("--exam-lab-validation") {
+            return try ModelContainer(for: schema, configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)])
+        }
+        if arguments.contains("--p0-validation"), let index = arguments.firstIndex(of: "--p0-test-store"), arguments.indices.contains(index + 1) {
+            // Use this app's own sandbox temporary directory. The runner cannot grant file access.
+            guard let id = UUID(uuidString: arguments[index + 1]) else { throw CocoaError(.fileWriteInvalidFileName) }
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent("UniSaver-P0-" + id.uuidString + ".store")
+            let configuration = ModelConfiguration("P0Validation", schema: schema, url: url)
+            return try ModelContainer(for: schema, configurations: [configuration])
+        }
+        #endif
         let configuration = ModelConfiguration("UniSaverStore", schema: schema)
         let container = try ModelContainer(for: schema, migrationPlan: UniSaverMigrationPlan.self, configurations: [configuration])
         try repairSessionTypes(in: container.mainContext)
