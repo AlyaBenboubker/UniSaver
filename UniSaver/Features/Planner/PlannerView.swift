@@ -2763,7 +2763,7 @@ private struct CalendarImportSheet: View {
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
         panel.canChooseFiles = true
-        panel.allowedFileTypes = ["ics"]
+        panel.allowedContentTypes = [.calendarEvent]
         panel.allowsOtherFileTypes = false
         panel.message = "Choisis un fichier calendrier .ics"
         let response = panel.runModal()

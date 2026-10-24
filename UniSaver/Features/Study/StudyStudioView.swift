@@ -619,7 +619,7 @@ enum AdaptiveExamPrepStore {
     static var accountSuffix: String { " · account " + QuestionBankImportService.digest(RevisionHistoryService.accountID) }
 
     static func profile(for course: Course, notes: [StudyNote], quizzes: [Quiz]) -> AdaptiveExamProfile {
-        var profile = notes.first(where: { $0.course?.id == course.id && isProfile($0) && $0.title.hasSuffix(accountSuffix) }).flatMap(decode)
+        var profile = notes.first(where: { $0.course?.id == course.id && isProfile($0) && $0.title.hasSuffix(accountSuffix) }).flatMap { decode($0) }
             ?? AdaptiveExamProfile(courseID: course.id, courseName: course.name)
         let ids = Set(quizzes.map(\.id))
         for note in notes where QuestionBankSessionService.isProgressNote(note) {
@@ -971,7 +971,7 @@ private struct AdaptiveDiagnosticPracticeView: View {
         .frame(minWidth: 820, minHeight: 640)
         .onAppear {
             ensureSlots()
-            if snapshots.isEmpty { snapshots = questions.map(BankQuestionSnapshot.init) }
+            if snapshots.isEmpty { snapshots = questions.map { BankQuestionSnapshot($0) } }
             answerClock.show()
         }
         .onDisappear { answerClock.hide() }
@@ -4647,7 +4647,7 @@ struct LegacyQuizPracticeView: View {
                     answers.indices.contains(offset) && !QuizScoringService.isCorrect(question: question, answer: answers[offset])
                 }.map(\.element)
                 Text(missed.isEmpty ? "No mistakes recorded in this session. Try a mixed review next." : "\(missed.count) questions missed. Practise these mistakes next.")
-                GeneratedMistakePractice(quiz: quiz, mistakes: missed.map(BankQuestionSnapshot.init))
+                GeneratedMistakePractice(quiz: quiz, mistakes: missed.map { BankQuestionSnapshot($0) })
 
                 ForEach(Array(questions.enumerated()), id: \.element.id) { questionIndex, question in
                     QuizReviewCard(question: question, answer: answers.indices.contains(questionIndex) ? answers[questionIndex] : "")

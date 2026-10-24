@@ -230,7 +230,8 @@ extension AcademicResource {
     }
 }
 
-enum FlashcardRating: String, Codable, CaseIterable, Identifiable {
+// Value-only scheduling data is encoded by SwiftData outside the main actor.
+nonisolated enum FlashcardRating: String, Codable, CaseIterable, Identifiable {
     case again
     case hard
     case good
@@ -248,7 +249,7 @@ enum FlashcardRating: String, Codable, CaseIterable, Identifiable {
     }
 }
 
-struct FlashcardReviewState: Codable, Equatable {
+nonisolated struct FlashcardReviewState: Codable, Equatable {
     var dueDate: Date
     var interval: TimeInterval
     var ease: Double

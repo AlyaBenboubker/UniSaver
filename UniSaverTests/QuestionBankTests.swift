@@ -18,6 +18,13 @@ private final class BankFixtureProvider: AIProvider {
 }
 
 struct QuestionBankTests {
+    @Test @MainActor func parsedQuestionRoundTripPreservesIdentityAndContent() throws {
+        let question = try #require(QuizBulkParser.parse("QUESTION\nType: Multiple Choice\nPrompt: Synthetic identity check\nA: First\nB: Second\nCorrect: B\nExplanation: Second is the stored key.").first)
+        let restored = try JSONDecoder().decode(ParsedQuizQuestion.self, from: JSONEncoder().encode(question))
+        #expect(restored.id == question.id)
+        #expect(restored == question)
+    }
+
     private func bank() throws -> String {
         let file = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
             .appendingPathComponent("ValidationFixtures/AccountingII-Synthetic.txt")

@@ -309,7 +309,7 @@ struct TaskSessionHistoryView: View {
     @State private var error: String?
     private var records: [TaskExecutionRecord] {
         notes.first(where: { $0.body.hasPrefix(TaskExecutionLedgerStore.marker) })
-            .map(TaskExecutionLedgerStore.decode)?.records.filter { $0.taskID == taskID }.sorted { $0.endedAt > $1.endedAt } ?? []
+            .map { TaskExecutionLedgerStore.decode($0) }?.records.filter { $0.taskID == taskID }.sorted { $0.endedAt > $1.endedAt } ?? []
     }
     var body: some View {
         if !records.isEmpty {

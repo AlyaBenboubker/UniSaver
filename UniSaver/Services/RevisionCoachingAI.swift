@@ -29,7 +29,8 @@ struct RevisionCoachingContext {
 }
 
 @MainActor enum RevisionCoachingSources {
-    static func build(quiz: Quiz, question: BankQuestionSnapshot, sessionID: UUID?, context: ModelContext, fileStore: AcademicFileStore = AcademicFileStore()) throws -> RevisionCoachingContext {
+    static func build(quiz: Quiz, question: BankQuestionSnapshot, sessionID: UUID?, context: ModelContext, fileStore: AcademicFileStore? = nil) throws -> RevisionCoachingContext {
+        let fileStore = fileStore ?? AcademicFileStore()
         let owner = RevisionHistoryService.accountID
         let ledger = try QuestionBankSessionService.load(quizID: quiz.id, context: context)
         let session = ledger.sessions.first { $0.id == sessionID }
@@ -128,7 +129,8 @@ struct RevisionErrorExplanation: Codable {
         guard !ids.isEmpty, Set(ids).isSubset(of: known) else { throw QuestionBankError.invalid("AI cited an unavailable source. The response was not accepted.") }
     }
     static func explain(question: BankQuestionSnapshot, submittedAnswer: String, request: String,
-                        context: RevisionCoachingContext, provider: any RevisionCoachingProviding = AIRevisionAssistantClient()) async throws -> RevisionErrorExplanation {
+                        context: RevisionCoachingContext, provider: (any RevisionCoachingProviding)? = nil) async throws -> RevisionErrorExplanation {
+        let provider = provider ?? AIRevisionAssistantClient()
         guard context.accountID == RevisionHistoryService.accountID else { throw QuestionBankError.invalid("Account changed.") }
         let objective = """
         \(promptVersion). Return ONLY JSON: {"explanation":"...","sourceIDs":["actual-source-id"],"suspectedKeyIssue":null}.

@@ -24,7 +24,7 @@ struct TaskWorkspaceDraft: Codable, Hashable {
 
 enum TaskWorkspaceService {
     static func assignment(for task: AcademicTask, notes: [StudyNote]) -> AssignmentPlanProject? {
-        notes.filter(AssignmentPlanStore.isAssignmentPlan).map(AssignmentPlanStore.decode)
+        notes.filter { AssignmentPlanStore.isAssignmentPlan($0) }.map { AssignmentPlanStore.decode($0) }
             .first { $0.milestones.contains { $0.createdTaskID == task.id } }
     }
 

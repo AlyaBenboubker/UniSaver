@@ -48,9 +48,9 @@ enum AgentNativeWire {
     }
     static func geminiSchema(_ value: Any) -> Any {
         if let values = value as? [String: Any] {
-            return values.filter { $0.key != "additionalProperties" }.mapValues(geminiSchema)
+            return values.filter { $0.key != "additionalProperties" }.mapValues { geminiSchema($0) }
         }
-        if let values = value as? [Any] { return values.map(geminiSchema) }
+        if let values = value as? [Any] { return values.map { geminiSchema($0) } }
         return value
     }
     static func geminiMessages(_ messages: [[String: Any]]) throws -> [[String: Any]] {

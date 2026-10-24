@@ -59,7 +59,8 @@ struct RevisionGenerationRecord: Codable {
         if let error = QuizScoringService.keyError(question: question) { throw QuestionBankError.invalid(error) }
         if draft.writtenResponse && draft.correctAnswers.allSatisfy({ $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) { throw QuestionBankError.invalid("A written response needs a model answer.") }
     }
-    static func generate(context: RevisionCoachingContext, provider: any RevisionCoachingProviding = AIRevisionAssistantClient()) async throws -> RevisionGenerationPreview {
+    static func generate(context: RevisionCoachingContext, provider: (any RevisionCoachingProviding)? = nil) async throws -> RevisionGenerationPreview {
+        let provider = provider ?? AIRevisionAssistantClient()
         guard context.accountID == RevisionHistoryService.accountID else { throw QuestionBankError.invalid("Account changed.") }
         let objective = """
         \(RevisionCoachingAI.promptVersion). Draft exactly three similar questions targeting ONLY the supplied concept(s): \(context.concepts.joined(separator: ", ")). If no reliable concept tag exists, target the explicit supplied question without inventing a topic diagnosis.

@@ -120,13 +120,13 @@ struct RevisionSessionRecord: Codable, Identifiable {
 /// active and the student has not paused. Notifications close background spans.
 @MainActor final class RevisionAnswerClock {
     private let now: () -> TimeInterval
-    private let isActive: () -> Bool
+    private let isActive: @MainActor () -> Bool
     private var accumulated: TimeInterval = 0
     private var began: TimeInterval?
     private var paused = false
     private var visible = false
     private var observers: [NSObjectProtocol] = []
-    init(now: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }, isActive: @escaping () -> Bool = { NSApp.isActive }) {
+    init(now: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }, isActive: @escaping @MainActor () -> Bool = { NSApp.isActive }) {
         self.now = now; self.isActive = isActive
         for name in [NSApplication.didBecomeActiveNotification, NSApplication.willResignActiveNotification] {
             observers.append(NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] notification in

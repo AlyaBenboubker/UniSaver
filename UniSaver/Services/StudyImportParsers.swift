@@ -98,7 +98,7 @@ enum FlashcardBulkParser {
 }
 
 struct ParsedQuizQuestion: Identifiable, Equatable, Codable {
-    let id = UUID()
+    var id = UUID()
     var sourceLine: Int = 1
     var type: QuizQuestionType
     var prompt: String
@@ -187,7 +187,7 @@ enum QuizBulkParser {
         if question.explanation.trimmedForStudy.isEmpty { errors.append("Explanation is required.") }
         if [.multipleChoice, .multipleSelect].contains(question.type) {
             if question.choices.count < 2 { errors.append("At least two choices are required.") }
-            let labels = Set(question.choices.map(QuizScoringService.optionKey))
+            let labels = Set(question.choices.map { QuizScoringService.optionKey($0) })
             if labels.count != question.choices.count { errors.append("Option labels must be unique.") }
             if question.correctAnswers.contains(where: { !labels.contains($0.uppercased()) }) { errors.append("Correct letters must refer to existing options.") }
             if question.type == .multipleChoice && question.correctAnswers.count != 1 { errors.append("Multiple Choice needs exactly one correct option.") }

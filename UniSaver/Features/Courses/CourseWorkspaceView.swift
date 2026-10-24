@@ -990,7 +990,7 @@ private struct CourseSyllabusImportSheet: View {
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
         panel.canChooseFiles = true
-        panel.allowedFileTypes = ["pdf", "docx", "png", "jpg", "jpeg", "heic", "ics"]
+        panel.allowedContentTypes = ["pdf", "docx", "png", "jpg", "jpeg", "heic", "ics"].compactMap { UTType(filenameExtension: $0) }
         panel.allowsOtherFileTypes = false
         panel.message = "Choisis un syllabus, planning ou calendrier"
         guard panel.runModal() == .OK, let url = panel.url else {
@@ -3130,7 +3130,7 @@ struct AssignmentPlannerSheet: View {
                 Button("Upload PDF or text file", systemImage: "doc.badge.plus") {
                     fileImporterPresented = true
                 }
-                if let sourceResource {
+                if sourceResource != nil {
                     Button("Open original document") { showsOriginal = true }
                 }
                 if let selectedFileURL {
